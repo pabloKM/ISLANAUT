@@ -28,7 +28,7 @@ agreement with Pablo.
    `game.json` files. Run `node scripts/build-index.mjs` locally to preview it.
 3. Commit with a message like `crowd-crossing: add hand-holding chain` and push to `main`.
    The Pages workflow deploys within about a minute to
-   `https://pablokm.github.io/ISLANAUT/<slug>/`.
+   `https://pablokm.github.io/ISLANAUT/games/<slug>/`.
 4. If the game is also a claude.ai artifact, keep the two in sync and put the artifact link
    in `game.json`.
 
