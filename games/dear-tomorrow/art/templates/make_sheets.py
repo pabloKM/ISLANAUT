@@ -12,13 +12,20 @@ F = '/usr/share/fonts/truetype/dejavu/'
 def font(sz, bold=False): return ImageFont.truetype(F + ('DejaVuSans-Bold.ttf' if bold else 'DejaVuSans.ttf'), sz)
 FT, FS, FL, FN = font(64, True), font(34), font(36, True), font(27)
 
-FRONT = Image.open('/home/claude/dt-poc/waker-front.png').convert('RGBA')
-SIDE = Image.open('/home/claude/dt-poc/waker-side.png').convert('RGBA')
+FRONT = Image.open('/home/claude/sheets/v2-front.png').convert('RGBA')
+SIDE = Image.open('/home/claude/sheets/v2-side.png').convert('RGBA')
+BACK = Image.open('/home/claude/sheets/v2-back.png').convert('RGBA')
 # proportions measured on the front view (fraction of full height, top = 0)
-GUIDES = [(0.0, 'top of hood loop'), (0.10, 'top of hood'), (0.31, 'bill edge'), (0.47, 'collar'), (0.79, 'coat hem'), (1.0, 'ground')]
+GUIDES = [(0.0, 'top of hood'), (0.09, 'top of bill'), (0.30, 'hood meets poncho'), (0.46, 'toggle'), (0.77, 'poncho hem'), (1.0, 'ground')]
 
+PRIORITY = {1: 'DONE (v2): only if you change the design', 2: 'PRIORITY 2', 3: 'PRIORITY 3', 4: 'later', 5: 'later', 6: 'later', 7: 'later', 8: 'PRIORITY 1: most useful first', 9: 'whenever a friend has 10 min'}
 def new_sheet(n, total, title, note):
     im = Image.new('RGB', (W, H), 'white'); d = ImageDraw.Draw(im)
+    tag = PRIORITY.get(n)
+    if tag:
+        tw = d.textlength(tag, font=FL) + 40
+        d.rounded_rectangle([W - M - tw, 60, W - M, 112], radius=24, fill=RED if 'PRIORITY' in tag else (150, 170, 190))
+        d.text((W - M - tw + 20, 66), tag, font=FL, fill='white')
     d.text((M, 70), f'Dear Tomorrow  ·  Sheet {n} of {total}', font=FS, fill=TXT)
     d.text((M, 115), title, font=FT, fill=TXT)
     d.text((M, 200), note, font=FS, fill=TXT)
@@ -71,28 +78,28 @@ sheets = []
 TOTAL = 9
 
 # 1 · Waker turnaround -------------------------------------------------------
-im, d = new_sheet(1, TOTAL, 'The Waker: turnaround', 'Front, side and back at the same height. Your existing drawings are ghosted in to trace or redraw.')
+im, d = new_sheet(1, TOTAL, 'The Waker: turnaround (v2)', 'Already done. Your v2 front, side and back are ghosted in. Use this sheet only if you redesign.')
 top, bot = 300, H - 150; bw = 900; gap = 40; x = M
 hpx = 1250
-for i, (lab, sub) in enumerate([('Front', 'redraw or trace your v1'), ('Side (facing right)', 'redraw or trace your v1'), ('Back', 'new: please draw this one')]):
+for i, (lab, sub) in enumerate([('Front', 'v2, done'), ('Side (facing right)', 'v2, done'), ('Back', 'v2, done')]):
     bx = x + i * (bw + gap)
     gy = box(d, bx, top, bw, bot - top, lab, sub, ground=0.93)
     if i == 0: ghost(im, FRONT, (bx + bw / 2, gy), hpx)
     if i == 1: ghost(im, SIDE, (bx + bw / 2, gy), hpx)
-    if i == 2: ghost(im, FRONT, (bx + bw / 2, gy), hpx, alpha=0.06)
+    if i == 2: ghost(im, BACK, (bx + bw / 2, gy), hpx)
 height_guides(d, M + 14, M + 3 * bw + 2 * gap - 14, gy, hpx)
 d.text((M + 3 * bw + 2 * gap + 10, top + 130), 'Optional:\n3/4 view\n(if you like)', font=FN, fill=TXT)
 sheets.append(im)
 
 # 2 · Waker parts for rigging ------------------------------------------------
-im, d = new_sheet(2, TOTAL, 'The Waker: parts on separate layers', 'So I can animate in code. Draw each part whole, including bits normally hidden. The red + is where the part attaches.')
+im, d = new_sheet(2, TOTAL, 'The Waker: parts on separate layers (v2)', 'So I can animate in code. Draw each part whole, including bits normally hidden. The red + is where the part attaches.')
 cols, rows = 6, 3; gx, gy0 = M, 290; cw = (W - 2 * M - (cols - 1) * 40) / cols; ch = (H - gy0 - 140 - (rows - 1) * 40) / rows
 parts = [
     ('Hood + bill', 'front', (0.5, 0.86)), ('Hood + bill', 'side', (0.45, 0.86)), ('Hood', 'back', (0.5, 0.86)),
     ('Face eye', 'open', None), ('Face eye', 'half shut', None), ('Face eye', 'shut (blink)', None),
-    ('Coat + collar', 'front', (0.5, 0.2)), ('Coat + collar', 'side', (0.5, 0.2)), ('Coat + collar', 'back', (0.5, 0.2)),
-    ('Collar clip', 'front + side', None), ('Mitten', 'left', (0.5, 0.35)), ('Mitten', 'right', (0.5, 0.35)),
-    ('Chalk stick', 'whole', (0.5, 0.5)), ('Leg + flip-flop', 'front, left & right', (0.5, 0.18)), ('Leg + flip-flop', 'side, near & far', (0.5, 0.18)),
+    ('Poncho', 'front, with pocket', (0.5, 0.15)), ('Poncho', 'side', (0.5, 0.15)), ('Poncho', 'back', (0.5, 0.15)),
+    ('Toggle', 'front + side', None), ('Mitten (left)', '+ = poncho edge it pops from', (0.5, 0.15)), ('Mitten (right)', '+ = poncho edge it pops from', (0.5, 0.15)),
+    ('Chalk stick', 'lives inside the poncho', (0.5, 0.5)), ('Leg + flip-flop', 'front, left & right', (0.5, 0.18)), ('Leg + flip-flop', 'side, near & far', (0.5, 0.18)),
     ('Leg + flip-flop', 'back, left & right', (0.5, 0.18)), ('Shadow face', 'inside the hood', (0.5, 0.5)), ('Anything else', 'you think moves', None),
 ]
 for i, (lab, sub, pv) in enumerate(parts):
@@ -100,21 +107,22 @@ for i, (lab, sub, pv) in enumerate(parts):
     box(d, bx, by, cw, ch, lab, sub, ground=None, center=False)
     if pv: pivot(d, bx + cw * pv[0], by + 110 + (ch - 130) * pv[1])
 d.text((W - M - 980, 205), 'Tip: a layer per part in one file is perfect.', font=FS, fill=RED)
+d.text((M, H - 125), 'Hands stay hidden under the poncho and only pop out to use or hold things, so the mittens just need to look right peeking out from the edge.', font=FN, fill=TXT)
 sheets.append(im)
 
 # 3 · Waker poses ------------------------------------------------------------
-im, d = new_sheet(3, TOTAL, 'The Waker: special poses', 'Poses the puppet can\'t make on its own. The walk row is optional: I can animate walking in code.')
+im, d = new_sheet(3, TOTAL, 'The Waker: special poses (v2)', 'Poses the puppet can\'t make on its own. Hands only come out from under the poncho when they\'re needed.')
 bw, bh, y0 = (W - 2 * M - 4 * 40) / 5, 1080, 290
 hp = 720
-poses = [('Writing on the Board', 'side, chalk raised high'), ('Asleep in the hammock', 'lying down, curled'), ('Waking up', 'front, big stretch'),
+poses = [('Writing on the Board', 'back view, chalk raised high'), ('Asleep in the hammock', 'lying down, curled'), ('Waking up', 'front, big stretch'),
          ('Holding a note', 'front, card in both mittens'), ('Surprised', 'front, eye wide, hop')]
 for i, (lab, sub) in enumerate(poses):
     bx = M + i * (bw + 40); g = box(d, bx, y0, bw, bh, lab, sub, ground=0.93)
-    ghost(im, SIDE if i == 0 else FRONT, (bx + bw / 2, g), hp, alpha=0.07)
+    ghost(im, BACK if i == 0 else FRONT, (bx + bw / 2, g), hp, alpha=0.07)
 y1 = y0 + bh + 60; bw2 = (W - 2 * M - 3 * 40) / 4; bh2 = H - y1 - 140
-for i, lab in enumerate(['Walk 1 · contact', 'Walk 2 · down', 'Walk 3 · passing', 'Walk 4 · up']):
-    bx = M + i * (bw2 + 40); g = box(d, bx, y1, bw2, bh2, lab, 'side, optional', ground=0.9)
-    ghost(im, SIDE, (bx + bw2 / 2, g), int(bh2 * 0.7), alpha=0.07)
+for i, (lab, sub, src) in enumerate([('Digging', 'side, mittens out, sand flying', SIDE), ('Reading the Board', 'back view, head tilted up', BACK), ('Sitting on the sand', 'side, resting', SIDE), ('Waving', 'front, one mitten out', FRONT)]):
+    bx = M + i * (bw2 + 40); g = box(d, bx, y1, bw2, bh2, lab, sub, ground=0.9)
+    ghost(im, src, (bx + bw2 / 2, g), int(bh2 * 0.7), alpha=0.07)
 sheets.append(im)
 
 # 4 · Tortoise ---------------------------------------------------------------
