@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#9fd3dc">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Dear Tomorrow">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<title>Dear Tomorrow — Test Island</title>
+<style>
+  :root { --ink:#1b1712; --paper:#fbf6ea; --cork:#cf9a5f; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; overflow:hidden; background:#9fd3dc; touch-action:none;
+    font:600 16px/1.35 "Trebuchet MS",system-ui,sans-serif; color:var(--ink);
+    -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; }
+  canvas#c { position:fixed; inset:0; width:100%; height:100%; display:block; }
+  button { font:inherit; cursor:pointer; color:var(--ink); -webkit-tap-highlight-color:transparent; }
+
+  #top { position:fixed; top:0; left:0; right:0; display:flex; justify-content:space-between; align-items:center;
+    padding:calc(env(safe-area-inset-top) + 10px) 12px 0; pointer-events:none; }
+  #top button { pointer-events:auto; width:44px; height:44px; border-radius:50%; border:3px solid var(--ink); background:var(--paper); font-size:20px; font-weight:900; padding:0; }
+  #sky { width:120px; height:44px; }
+  #toast { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 16px); transform:translateX(-50%);
+    background:var(--paper); border:3px solid var(--ink); border-radius:14px; padding:8px 14px; max-width:92vw; width:max-content;
+    text-align:center; pointer-events:none; opacity:0; transition:opacity .35s; }
+  #toast.show { opacity:1; }
+
+  .screen { position:fixed; inset:0; display:none; align-items:center; justify-content:center; padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px);
+    background:rgba(27,23,18,.45); }
+  .screen.show { display:flex; }
+  .card { background:var(--paper); border:3px solid var(--ink); border-radius:16px; box-shadow:6px 6px 0 var(--ink); padding:16px; width:min(380px, 94vw); max-height:92vh; overflow:auto; }
+  .card h2 { margin:0 0 6px; font-size:24px; }
+  .card p { margin:6px 0; }
+  .btn { display:block; width:100%; margin-top:10px; padding:9px; font-size:18px; font-weight:900; border:3px solid var(--ink); border-radius:12px; background:#ffd8a8; }
+  .btn.alt { background:#fff; font-size:15px; }
+  .small { font-size:13px; opacity:.75; }
+
+  /* Board editor */
+  #board .card { background:var(--cork); }
+  .notes { display:grid; gap:10px; }
+  .note { background:var(--paper); border:3px solid var(--ink); border-radius:6px; padding:8px; display:flex; gap:8px; align-items:center; transform:rotate(var(--r,0deg)); }
+  .note .pin { width:14px; height:14px; border-radius:50%; background:#e8502e; border:2px solid var(--ink); flex:none; }
+  .slot { width:58px; height:58px; border:2px dashed #b9ab8f; border-radius:8px; background:#fff; padding:0; display:grid; place-items:center; }
+  .slot.sel { border:3px solid #e8502e; }
+  .slot canvas, .gl canvas { width:46px; height:46px; }
+  .palette { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-top:12px; background:var(--paper); border:3px solid var(--ink); border-radius:10px; padding:8px; }
+  .gl { border:2px solid var(--ink); border-radius:8px; background:#fff; padding:4px; display:grid; place-items:center; aspect-ratio:1; }
+  .gl.erase { font-size:22px; font-weight:900; }
+  /* clue + chest */
+  .big { display:grid; place-items:center; padding:10px; }
+  .big canvas { width:150px; height:150px; }
+  .dials { display:flex; gap:10px; justify-content:center; margin:10px 0; }
+  .dial { display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .dial button.arr { width:64px; height:34px; border:3px solid var(--ink); border-radius:8px; background:#fff; font-size:18px; font-weight:900; padding:0; }
+  .dial .face { width:72px; height:72px; border:3px solid var(--ink); border-radius:10px; background:#fff; display:grid; place-items:center; }
+  .dial .face canvas { width:56px; height:56px; }
+  .shake { animation:shake .35s; }
+  @keyframes shake { 20%,60% { transform:translateX(-8px); } 40%,80% { transform:translateX(8px); } }
+  #fade { position:fixed; inset:0; background:#0e0d1c; color:#e9e4f5; display:flex; align-items:center; justify-content:center; text-align:center;
+    font-size:22px; opacity:0; pointer-events:none; transition:opacity 1.2s; padding:20px; }
+  #fade.show { opacity:1; pointer-events:auto; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="top"><button id="menuBtn" aria-label="Menu">≡</button><canvas id="sky" width="240" height="88" aria-hidden="true"></canvas><button id="soundBtn" aria-label="Sound">♪</button></div>
+<div id="toast"></div>
+<div id="fade"></div>
+
+<div class="screen show" id="intro"><div class="card">
+  <h2>Dear Tomorrow</h2>
+  <p class="small">Test island · not the real game. Nothing here will be in the finished game.</p>
+  <p>You have one day here. When night falls, you forget everything, except what's pinned to the <b>Board</b>.</p>
+  <p>Tap anywhere to walk. Tap things to look at them. Something on this island is locked.</p>
+  <button class="btn" id="startBtn">Wake up</button>
+  <button class="btn alt" id="resetBtn">Start over (clear the Board)</button>
+  <p class="small" style="margin-top:12px">Waker by PabloKM · test build by Claude (AI)</p>
+</div></div>
+
+<div class="screen" id="board"><div class="card">
+  <h2>The Board</h2>
+  <p class="small" style="opacity:.9">These notes survive the night. Tap a square, then a glyph.</p>
+  <div class="notes" id="notes"></div>
+  <div class="palette" id="palette"></div>
+  <button class="btn" id="boardDone">Done</button>
+</div></div>
+
+<div class="screen" id="clue"><div class="card">
+  <h2 id="clueTitle"></h2>
+  <div class="big"><canvas id="clueCanvas" width="300" height="300"></canvas></div>
+  <p id="clueText"></p>
+  <button class="btn" id="clueDone">OK</button>
+</div></div>
+
+<div class="screen" id="chest"><div class="card" id="chestCard">
+  <h2>A locked chest</h2>
+  <p>Three dials, each carved with the same little marks.</p>
+  <div class="dials" id="dials"></div>
+  <button class="btn" id="chestTry">Try to open</button>
+  <button class="btn alt" id="chestClose">Leave it</button>
+</div></div>
+
+<div class="screen" id="menu"><div class="card">
+  <h2>Paused</h2>
+  <p class="small">The clock stops while menus are open.</p>
+  <button class="btn" id="resumeBtn">Back to the island</button>
+  <button class="btn alt" id="restartDay">Sleep now (skip to tomorrow)</button>
+  <button class="btn alt" id="wipeBtn">Start over (clear the Board)</button>
+</div></div>
+
+<div class="screen" id="won"><div class="card">
+  <h2>It opens!</h2>
+  <div class="big"><canvas id="wonCanvas" width="300" height="300"></canvas></div>
+  <p>Inside: a small shiny shell. That's the whole test. The real island will be different.</p>
+  <p id="wonDays" class="small"></p>
+  <button class="btn" id="wonDone">Keep wandering</button>
+  <button class="btn alt" id="wonReset">Play the test again from scratch</button>
+</div></div>
+
+<script>
+(() => {
+'use strict';
+// =====================================================================
+//  DEAR TOMORROW — TEST ISLAND (prototype)
+//  Concept by Claude (AI); the Waker by PabloKM. Placeholder glyphs and
+//  a throwaway puzzle: nothing here is from the real game.
+// =====================================================================
+const $ = id => document.getElementById(id);
+const cv = $('c'), g = cv.getContext('2d');
+const INK = '#1b1712';
+const DAY_LEN = 150;          // seconds of real time per day (test value)
+
+// ---------------- save ----------------
+const KEY = 'dearTomorrow.test.v1';
+let save = { notes: [[-1, -1, -1], [-1, -1, -1], [-1, -1, -1]], day: 1, solved: false };
+try { Object.assign(save, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
+const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) {} };
+
+// ---------------- glyphs (placeholders until Pablo draws them) ----------------
+const GLYPHS = ['arrow', 'wave', 'sun', 'moon', 'key', 'question'];
+const hash = n => { const s = Math.sin(n * 127.1) * 43758.5453; return s - Math.floor(s); };
+function glyph(x, kind, cx, cy, s, lw, seed = 0) {
+  const j = i => (hash(i * 7.3 + seed) - .5) * s * .05;
+  x.save(); x.translate(cx, cy); x.strokeStyle = INK; x.lineWidth = lw; x.lineCap = 'round'; x.lineJoin = 'round'; x.beginPath();
+  const M = (a, b, i) => x.moveTo(a * s + j(i), b * s + j(i + 1)), L = (a, b, i) => x.lineTo(a * s + j(i), b * s + j(i + 1));
+  switch (kind) {
+    case 0: M(-.32, .28, 1); L(.3, -.3, 2); M(.3, -.3, 3); L(-.02, -.32, 4); M(.3, -.3, 5); L(.3, .0, 6); break;
+    case 1: M(-.4, .05, 1); x.bezierCurveTo(-.27 * s, -.28 * s, -.12 * s, .3 * s, 0, .02 * s); x.bezierCurveTo(.12 * s, -.28 * s, .27 * s, .3 * s, .4 * s + j(9), .02 * s); break;
+    case 2: x.arc(j(1), j(2), s * .15, 0, Math.PI * 2); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; M(Math.cos(a) * .25, Math.sin(a) * .25, i + 3); L(Math.cos(a) * .38, Math.sin(a) * .38, i + 11); } break;
+    case 3: x.arc(j(1), j(2), s * .3, Math.PI * .35, Math.PI * 1.65); x.arc(s * .14 + j(3), j(4), s * .24, Math.PI * 1.55, Math.PI * .45, true); break;
+    case 4: x.arc(-s * .2 + j(1), j(2), s * .14, 0, Math.PI * 2); M(-.06, 0, 3); L(.38, 0, 4); M(.24, 0, 5); L(.24, .14, 6); M(.34, 0, 7); L(.34, .11, 8); break;
+    case 5: M(-.18, -.16, 1); x.bezierCurveTo(-.18 * s, -.42 * s, .24 * s, -.42 * s, .22 * s, -.15 * s); x.bezierCurveTo(.2 * s, .02 * s, 0, .02 * s, 0, .16 * s); x.stroke(); x.beginPath(); x.arc(j(5), s * .32, lw * .7, 0, Math.PI * 2); x.fillStyle = INK; x.fill(); break;
+  }
+  x.stroke(); x.restore();
+}
+function glyphCanvas(kind, px = 96, seed = 0) {
+  const c = document.createElement('canvas'); c.width = c.height = px; const x = c.getContext('2d');
+  if (kind >= 0) glyph(x, kind, px / 2, px / 2, px * .8, px * .07, seed); return c;
+}
+function dots(x, n, cx, cy, r) { x.fillStyle = INK; for (let i = 0; i < n; i++) { x.beginPath(); x.arc(cx + (i - (n - 1) / 2) * r * 3, cy, r, 0, Math.PI * 2); x.fill(); } }
+
+// ---------------- the test puzzle (throwaway) ----------------
+// Chest code: moon, wave, key. Order is shown by dots next to each clue.
+const CODE = [3, 1, 4];
+const CLUES = {
+  stone: { order: 1, kind: 3, title: 'A carved stone', text: 'Worn into the rock, with one dot beside it.' },
+  sand:  { order: 2, kind: 1, title: 'Marks in the sand', text: 'Drawn in the wet sand at the water\'s edge, with two dots. The tide will smooth these away soon.' },
+  dig:   { order: 3, kind: 4, title: 'Something buried', text: 'You dig where the shadow pointed. A pebble with three dots and a mark scratched into it.' }
+};
+
+// ---------------- island layout (x, z in about -1..1) ----------------
+const P = {
+  palmA: [-0.62, -0.42], palmB: [-0.08, -0.58], palmC: [0.72, -0.02],
+  hammock: [-0.34, -0.36], board: [0.44, -0.44], stone: [-0.58, 0.38], chest: [0.5, 0.5],
+  sand: [-0.05, 0.74], digX: [0.06, 0.2]
+};
+const SPOTS = [ // interactables: where to stand, what happens
+  { id: 'board', at: [0.42, -0.2], pos: P.board, r: 46 },
+  { id: 'stone', at: [-0.46, 0.3], pos: P.stone, r: 38 },
+  { id: 'chest', at: [0.36, 0.42], pos: P.chest, r: 38 },
+  { id: 'sand', at: [-0.05, 0.6], pos: P.sand, r: 40, when: t => t < 0.2 },
+  { id: 'dig', at: [0.06, 0.2], pos: P.digX, r: 34, when: t => t > 0.58 && t < 0.86 },
+  { id: 'hammock', at: [-0.34, -0.3], pos: P.hammock, r: 40 }
+];
+
+// ---------------- world state ----------------
+let state = 'intro', dayT = 0, time = 0, dug = false, boil = 0;
+const waker = { x: P.hammock[0], z: -0.3, tx: P.hammock[0], tz: -0.3, dir: 'front', moving: false, flip: false, hands: 0, target: null, asleep: 1.2 };
+let W = 0, H = 0, DPR = 1, cx = 0, cy = 0, rx = 0, ry = 0;
+function resize() {
+  DPR = Math.min(2, devicePixelRatio || 1); W = innerWidth; H = innerHeight;
+  cv.width = W * DPR; cv.height = H * DPR; g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  rx = Math.min(W * .47, H * .4); ry = rx * .7; cx = W / 2; cy = H * .53;
+}
+addEventListener('resize', resize); resize();
+const toScreen = (x, z) => [cx + x * rx * .84, cy + z * ry * .84];
+const toIsland = (sx, sy) => [(sx - cx) / (rx * .84), (sy - cy) / (ry * .84)];
+const inside = (x, z) => x * x / 0.92 + z * z / 0.86 < 0.92;
+
+// ---------------- images ----------------
+const IMG = {}; let loaded = 0;
+for (const n of ['front', 'side', 'back']) { const im = new Image(); im.onload = () => loaded++; im.src = `waker-${n}.png`; IMG[n] = im; }
+
+// ---------------- sound ----------------
+let AC = null, soundOn = true, waves = null;
+function ac() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (AC && AC.state === 'suspended') AC.resume(); return AC; }
+function tone(f, d, type = 'triangle', v = .05, delay = 0) {
+  if (!soundOn) return; const a = ac(); if (!a) return; const t0 = a.currentTime + delay, o = a.createOscillator(), gn = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t0); gn.gain.setValueAtTime(v, t0); gn.gain.exponentialRampToValueAtTime(.0001, t0 + d);
+  o.connect(gn).connect(a.destination); o.start(t0); o.stop(t0 + d + .02);
+}
+function startWaves() {
+  const a = ac(); if (!a || waves) return;
+  const len = a.sampleRate * 2, buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  const src = a.createBufferSource(); src.buffer = buf; src.loop = true;
+  const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 500;
+  const gn = a.createGain(); gn.gain.value = 0; const lfo = a.createOscillator(), lg = a.createGain(); lfo.frequency.value = .12; lg.gain.value = .02;
+  lfo.connect(lg).connect(gn.gain); src.connect(lp).connect(gn).connect(a.destination); src.start(); lfo.start();
+  waves = { gn, base: .03 }; gn.gain.value = soundOn ? .03 : 0;
+}
+const sfx = { scratch: () => { tone(900, .04, 'square', .015); tone(1200, .03, 'square', .012, .04); }, open: () => [523, 659, 784].forEach((f, i) => tone(f, .25, 'triangle', .05, i * .1)),
+  clunk: () => tone(110, .2, 'square', .05), clue: () => { tone(659, .3, 'sine', .05); tone(988, .4, 'sine', .04, .15); },
+  win: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .35, 'triangle', .05, i * .12)), bell: () => { tone(392, 1.2, 'sine', .05); tone(587, 1.2, 'sine', .03, .02); } };
+$('soundBtn').onclick = () => { soundOn = !soundOn; $('soundBtn').style.opacity = soundOn ? 1 : .45; ac(); startWaves(); if (waves) waves.gn.gain.value = soundOn ? .03 : 0; };
+
+// ---------------- light through the day ----------------
+const KEYS = [[0, [255, 214, 204], 0.05], [0.22, [255, 247, 232], 0], [0.5, [255, 250, 240], 0], [0.7, [255, 178, 128], .06], [0.86, [92, 92, 160], .35], [1, [40, 40, 90], .6]];
+function light(t) {
+  let i = 0; while (i < KEYS.length - 2 && t > KEYS[i + 1][0]) i++;
+  const [t0, c0, d0] = KEYS[i], [t1, c1, d1] = KEYS[i + 1], k = Math.min(1, Math.max(0, (t - t0) / (t1 - t0)));
+  return { c: c0.map((v, j) => Math.round(v + (c1[j] - v) * k)), dark: d0 + (d1 - d0) * k };
+}
+
+// ---------------- ink drawing helpers ----------------
+const jit = (i, a) => (hash(i * 13.37 + boil * 7.1) - .5) * a;
+function ink(pts, close, fill, lw, amp = 1.1) {
+  g.beginPath(); pts.forEach(([x, y], i) => { const px = x + jit(i + x, amp), py = y + jit(i * 3 + y, amp); i ? g.lineTo(px, py) : g.moveTo(px, py); });
+  if (close) g.closePath(); if (fill) { g.fillStyle = fill; g.fill(); }
+  if (lw) { g.strokeStyle = INK; g.lineWidth = lw; g.lineJoin = 'round'; g.lineCap = 'round'; g.stroke(); }
+}
+const U = () => rx / 170; // unit scale for props
+
+function drawWorld() {
+  const u = U();
+  g.fillStyle = '#9fd3dc'; g.fillRect(0, 0, W, H);
+  g.strokeStyle = 'rgba(27,23,18,.3)'; g.lineWidth = 1.5; g.lineCap = 'round';
+  for (let i = 0; i < 34; i++) {
+    const x = (hash(i) * W + time * 5 * (hash(i + 9) + .3)) % (W + 30) - 15, y = hash(i + 50) * H;
+    if (((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 < 1.4) continue;
+    g.beginPath(); g.moveTo(x - 8, y); g.quadraticCurveTo(x - 4, y - 5, x, y); g.quadraticCurveTo(x + 4, y - 5, x + 8, y); g.stroke();
+  }
+  const isl = [], foam = [];
+  for (let i = 0; i < 52; i++) { const a = i / 52 * Math.PI * 2, r = 1 + .06 * Math.sin(a * 3 + 1) + .04 * Math.sin(a * 5);
+    isl.push([cx + Math.cos(a) * rx * r, cy + Math.sin(a) * ry * r]); foam.push([cx + Math.cos(a) * rx * r * 1.06, cy + Math.sin(a) * ry * r * 1.09 + Math.sin(time * .8) * 2]); }
+  ink(foam, true, 'rgba(255,255,255,.7)', 0); ink(isl, true, '#f2d9a2', 2.6);
+  g.fillStyle = 'rgba(27,23,18,.25)';
+  for (let i = 0; i < 90; i++) { const a = hash(i + 200) * Math.PI * 2, r = Math.sqrt(hash(i + 300)) * .88; g.beginPath(); g.arc(cx + Math.cos(a) * rx * r, cy + Math.sin(a) * ry * r, 1, 0, 7); g.fill(); }
+
+  // ground marks (drawn flat, before standing things)
+  if (dayT < 0.22) { // dawn sand drawing, fading as the tide comes up
+    const [sx, sy] = toScreen(...P.sand), a = dayT < .16 ? 1 : 1 - (dayT - .16) / .06;
+    g.save(); g.globalAlpha = Math.max(0, a) * .8; g.translate(sx, sy); g.scale(1, .6);
+    glyph(g, CLUES.sand.kind, 0, 0, 46 * u, 3 * u, 3); dots(g, 2, 0, 32 * u, 3 * u); g.restore();
+  }
+  if (dayT > 0.58 && dayT < 0.86) { // dusk: the palm's long shadow points to a spot
+    const [px, py] = toScreen(...P.palmC), [dx, dy] = toScreen(...P.digX);
+    const k = Math.min(1, (dayT - .58) / .06) * Math.min(1, (.86 - dayT) / .05);
+    g.save(); g.globalAlpha = .28 * k; g.strokeStyle = INK; g.lineWidth = 12 * u; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(px, py); g.lineTo(dx + 8, dy); g.stroke(); g.restore();
+    if (!dug) { g.save(); g.globalAlpha = k; g.strokeStyle = INK; g.lineWidth = 3; g.beginPath(); g.moveTo(dx - 8, dy - 5); g.lineTo(dx + 8, dy + 5); g.moveTo(dx + 8, dy - 5); g.lineTo(dx - 8, dy + 5); g.stroke(); g.restore(); }
+  }
+  if (dug) { const [dx, dy] = toScreen(...P.digX); ink([[dx - 12, dy], [dx, dy - 6], [dx + 12, dy], [dx, dy + 6]], true, '#c9a66d', 1.5); }
+
+  const items = [];
+  const palm = (p, h, lean) => items.push({ z: p[1], draw: () => {
+    const [px, py] = toScreen(...p), H2 = h * u, top = [px + lean * u, py - H2];
+    g.fillStyle = 'rgba(27,23,18,.15)'; g.beginPath(); g.ellipse(px, py + 2, 16 * u, 5 * u, 0, 0, 7); g.fill();
+    ink([[px - 4 * u, py], [px + lean * u * .5 - 3 * u, py - H2 * .5], [top[0] - 2 * u, top[1]], [top[0] + 2 * u, top[1]], [px + lean * u * .5 + 3 * u, py - H2 * .5], [px + 4 * u, py]], true, '#b7804f', 2.2, .8);
+    for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2 + .3 + Math.sin(time * .9 + k) * .04, L = H2 * .45, ex = top[0] + Math.cos(a) * L, ey = top[1] + Math.sin(a) * L * .5 + 6 * u;
+      ink([[top[0], top[1]], [(top[0] + ex) / 2 + Math.sin(a) * 6 * u, (top[1] + ey) / 2 - 8 * u], [ex, ey], [(top[0] + ex) / 2 - Math.sin(a) * 4 * u, (top[1] + ey) / 2 + 2 * u]], true, '#5dbb63', 2, .8); }
+  } });
+  palm(P.palmA, 84, -6); palm(P.palmB, 92, 5); palm(P.palmC, 78, 9);
+  items.push({ z: -0.46, draw: () => {
+    const [ax, ay] = toScreen(...P.palmA), [bx, by] = toScreen(...P.palmB), hy = 30 * u, pts = [];
+    for (let i = 0; i <= 12; i++) { const k = i / 12; pts.push([ax - 3 + (bx - ax + 6) * k, ay - hy + (by - ay) * k + Math.sin(k * Math.PI) * hy * .55]); }
+    ink(pts.concat(pts.map(([x, y]) => [x, y + 6 * u]).reverse()), true, '#f07a4a', 2, .7);
+  } });
+  items.push({ z: P.board[1], draw: () => {
+    const [px, py] = toScreen(...P.board), bw = 84 * u, bh = bw * .62;
+    ink([[px - 3 * u, py], [px - 3 * u, py - bh * 1.25], [px + 3 * u, py - bh * 1.25], [px + 3 * u, py]], true, '#8b6040', 2);
+    const top = py - bh * 1.25 - bh * .55;
+    ink([[px - bw / 2, top], [px + bw / 2, top], [px + bw / 2, top + bh], [px - bw / 2, top + bh]], true, '#cf9a5f', 2.4, 1);
+    save.notes.forEach((n, k) => { if (n.every(v => v < 0)) return;
+      const nx = px - bw * .31 + k * bw * .31, ny = top + bh * .5 + (k % 2 ? 3 : -2) * u, s = bw * .28;
+      ink([[nx - s / 2, ny - s / 2], [nx + s / 2, ny - s / 2], [nx + s / 2, ny + s / 2], [nx - s / 2, ny + s / 2]], true, '#fffaf0', 1.4, .5);
+      n.forEach((v, q) => { if (v >= 0) glyph(g, v, nx, ny - s * .3 + q * s * .3, s * .32, 1, k * 3 + q); }); });
+    hintRing(px, top - 8 * u, 'board');
+  } });
+  items.push({ z: P.stone[1], draw: () => { const [px, py] = toScreen(...P.stone);
+    ink([[px - 24 * u, py], [px - 18 * u, py - 20 * u], [px + 2 * u, py - 26 * u], [px + 22 * u, py - 9 * u], [px + 20 * u, py + 3 * u]], true, '#b7aec9', 2.2);
+    g.save(); g.globalAlpha = .55; glyph(g, CLUES.stone.kind, px, py - 12 * u, 16 * u, 1.4, 1); dots(g, 1, px + 13 * u, py - 5 * u, 1.6 * u); g.restore();
+    hintRing(px, py - 30 * u, 'stone'); } });
+  items.push({ z: P.chest[1], draw: () => { const [px, py] = toScreen(...P.chest), w = 34 * u, h = 22 * u;
+    g.fillStyle = 'rgba(27,23,18,.18)'; g.beginPath(); g.ellipse(px, py + 2, w * .7, 5 * u, 0, 0, 7); g.fill();
+    const lid = save.solved ? -9 * u : 0;
+    ink([[px - w / 2, py], [px - w / 2, py - h], [px + w / 2, py - h], [px + w / 2, py]], true, '#a8673a', 2.2);
+    ink([[px - w / 2, py - h + lid], [px - w / 2 + 2 * u, py - h - 10 * u + lid], [px + w / 2 - 2 * u, py - h - 10 * u + lid], [px + w / 2, py - h + lid]], true, '#c47c45', 2.2);
+    if (!save.solved) for (let i = 0; i < 3; i++) { g.beginPath(); g.arc(px - 9 * u + i * 9 * u, py - h * .5, 3 * u, 0, 7); g.fillStyle = '#e9d9a8'; g.fill(); g.strokeStyle = INK; g.lineWidth = 1.4; g.stroke(); }
+    else { g.fillStyle = '#ffeec2'; g.beginPath(); g.arc(px, py - h - 4 * u, 5 * u + Math.sin(time * 4) * u, 0, 7); g.fill(); }
+    hintRing(px, py - h - 16 * u, 'chest'); } });
+  // the Waker
+  items.push({ z: waker.z, draw: drawWaker });
+  items.sort((a, b) => a.z - b.z).forEach(o => o.draw());
+}
+
+function hintRing(x, y, id) { // a little ink "?" over things you're standing near
+  const sp = SPOTS.find(s => s.id === id); if (!sp || state !== 'play') return;
+  const d = Math.hypot(waker.x - sp.at[0], waker.z - sp.at[1]); if (d > .22 || waker.moving) return;
+  g.save(); g.globalAlpha = .75; g.font = `900 ${Math.round(18 * U())}px Trebuchet MS, sans-serif`; g.textAlign = 'center'; g.fillStyle = INK; g.fillText('?', x, y + Math.sin(time * 4) * 2); g.restore();
+}
+
+function drawWaker() {
+  if (loaded < 3) return;
+  const [px, py] = toScreen(waker.x, waker.z), u = U(), h = 74 * u;
+  const asleep = waker.asleep > 0;
+  if (asleep) { // tucked into the hammock: just the hood peeking out, swaying
+    const [ax, ay] = toScreen(...P.palmA), [bx, by] = toScreen(...P.palmB), mx = (ax + bx) / 2, my = (ay + by) / 2 - 30 * u + 16 * u;
+    const img = IMG.side, hh = h * .55, ww = hh * img.width / img.height;
+    g.save(); g.translate(mx, my + Math.sin(time * 1.5) * 1.5); g.rotate(-1.35); g.drawImage(img, -ww / 2, -hh / 2, ww, hh); g.restore();
+    g.font = `900 ${Math.round(14 * u)}px Trebuchet MS`; g.fillStyle = INK; g.fillText('z', mx + 18 * u, my - 18 * u - (time * 6 % 10)); return;
+  }
+  const img = IMG[waker.dir], ww = h * img.width / img.height;
+  const step = waker.moving ? Math.sin(time * 12) : 0;
+  g.fillStyle = 'rgba(27,23,18,.2)'; g.beginPath(); g.ellipse(px, py + 1, ww * .42, 4 * u, 0, 0, 7); g.fill();
+  g.save(); g.translate(px, py - Math.abs(step) * 3 * u); g.rotate(step * .05); if (waker.flip) g.scale(-1, 1);
+  g.drawImage(img, -ww / 2, -h, ww, h);
+  if (waker.hands > 0 && waker.dir !== 'back') { // placeholder mittens + chalk popping out from under the poncho
+    const k = Math.min(1, waker.hands), hy = -h * .36, out = 6 * u * k;
+    g.fillStyle = '#c24b66'; g.strokeStyle = INK; g.lineWidth = 2;
+    if (waker.dir === 'side') { g.save(); g.translate(ww * .2 + out, hy); g.rotate(-.9);
+      g.fillStyle = '#fff'; g.fillRect(-2 * u, -18 * u * k, 4 * u, 18 * u * k); g.strokeRect(-2 * u, -18 * u * k, 4 * u, 18 * u * k); g.restore();
+      g.fillStyle = '#c24b66'; g.beginPath(); g.arc(ww * .2 + out, hy, 5 * u, 0, 7); g.fill(); g.stroke(); }
+    else { for (const sx of [-1, 1]) { g.beginPath(); g.arc(sx * (ww * .18 + out * .5), hy + 4 * u, 5 * u, 0, 7); g.fill(); g.stroke(); } }
+  }
+  g.restore();
+}
+
+function drawLight() {
+  const L = light(dayT);
+  g.save(); g.globalCompositeOperation = 'multiply'; g.globalAlpha = .55 + L.dark * .7; g.fillStyle = `rgb(${L.c})`; g.fillRect(0, 0, W, H); g.restore();
+  const warn = dayT > .82 ? (dayT - .82) / .18 : 0, dark = L.dark + warn * .25;
+  if (dark > 0) { const vg = g.createRadialGradient(cx, cy, Math.min(W, H) * (.45 - warn * .25), cx, cy, Math.max(W, H) * .7);
+    vg.addColorStop(0, `rgba(10,10,35,${dark * .25})`); vg.addColorStop(1, `rgba(10,10,35,${Math.min(.95, dark * 1.3)})`); g.fillStyle = vg; g.fillRect(0, 0, W, H); }
+}
+
+const sky = $('sky').getContext('2d');
+function drawSky() { // sun or moon travelling an arc: time of day only, never the day number
+  sky.clearRect(0, 0, 240, 88); sky.strokeStyle = 'rgba(27,23,18,.45)'; sky.lineWidth = 3; sky.setLineDash([6, 6]);
+  sky.beginPath(); sky.arc(120, 84, 100, Math.PI, 0); sky.stroke(); sky.setLineDash([]);
+  const a = Math.PI + dayT * Math.PI, x = 120 + Math.cos(a) * 100, y = 84 + Math.sin(a) * 100;
+  sky.beginPath(); sky.arc(x, y, 12, 0, 7); sky.fillStyle = dayT < .78 ? '#ffd21f' : '#e9e4f5'; sky.fill(); sky.strokeStyle = INK; sky.lineWidth = 3; sky.stroke();
+}
+
+// ---------------- toasts ----------------
+let toastT = 0;
+function toast(msg, secs = 3) { $('toast').textContent = msg; $('toast').classList.add('show'); toastT = secs; }
+
+// ---------------- update ----------------
+let warned = false;
+function update(dt) {
+  time += dt; boil = Math.floor(time * 5);
+  if (toastT > 0 && (toastT -= dt) <= 0) $('toast').classList.remove('show');
+  if (state !== 'play') return;
+  dayT += dt / DAY_LEN;
+  if (dayT > .82 && !warned) { warned = true; sfx.bell(); toast('It\'s getting dark. Pin anything you want to keep.', 4); }
+  if (dayT >= 1) { nightfall(); return; }
+  if (waker.asleep > 0) { waker.asleep -= dt; if (waker.asleep <= 0) { waker.x = P.hammock[0]; waker.z = -0.3; waker.dir = 'front'; } return; }
+  waker.hands = Math.max(0, waker.hands - dt * 2);
+  const dx = waker.tx - waker.x, dz = waker.tz - waker.z, d = Math.hypot(dx, dz), sp = .34 * dt;
+  if (d > .005) {
+    waker.moving = true; const k = Math.min(1, sp / d); waker.x += dx * k; waker.z += dz * k;
+    if (Math.abs(dx) > Math.abs(dz) * .8) { waker.dir = 'side'; waker.flip = dx < 0; } else { waker.dir = dz < 0 ? 'back' : 'front'; waker.flip = false; }
+  } else if (waker.moving) {
+    waker.moving = false; if (waker.dir === 'side' && !waker.target) waker.dir = 'front';
+    if (waker.target) { const t = waker.target; waker.target = null; interact(t); }
+  }
+}
+
+// ---------------- interactions ----------------
+function interact(id) {
+  if (id === 'board') { waker.dir = 'back'; openBoard(); return; }
+  if (id === 'hammock') { toast('Your hammock. You always wake up here.'); return; }
+  if (id === 'chest') { waker.dir = 'side'; waker.flip = false; waker.hands = 1.5; if (save.solved) { toast('The chest is open. The shell is still there, glinting.'); return; } openChest(); return; }
+  if (id === 'stone') return showClue('stone');
+  if (id === 'sand') return showClue('sand');
+  if (id === 'dig') { waker.hands = 2; dug = true; return showClue('dig'); }
+}
+function showClue(id) {
+  const c = CLUES[id], x = $('clueCanvas').getContext('2d'); x.clearRect(0, 0, 300, 300);
+  glyph(x, c.kind, 150, 135, 220, 14, id.length); dots(x, c.order, 150, 262, 9);
+  $('clueTitle').textContent = c.title; $('clueText').textContent = c.text; sfx.clue(); pause('clue');
+}
+function pause(id) { state = 'ui'; for (const s of ['intro', 'board', 'clue', 'chest', 'menu', 'won']) $(s).classList.toggle('show', s === id); }
+function resume() { for (const s of ['intro', 'board', 'clue', 'chest', 'menu', 'won']) $(s).classList.remove('show'); state = 'play'; }
+$('clueDone').onclick = resume;
+
+// Board editor
+let sel = null;
+function openBoard() {
+  waker.hands = 99; sel = null; renderNotes();
+  const pal = $('palette'); pal.innerHTML = '';
+  GLYPHS.forEach((name, k) => { const b = document.createElement('button'); b.className = 'gl'; b.setAttribute('aria-label', name); b.appendChild(glyphCanvas(k, 96, k)); b.onclick = () => put(k); pal.appendChild(b); });
+  const e = document.createElement('button'); e.className = 'gl erase'; e.textContent = '⌫'; e.setAttribute('aria-label', 'erase'); e.onclick = () => put(-1); pal.appendChild(e);
+  pause('board');
+}
+function renderNotes() {
+  const box = $('notes'); box.innerHTML = '';
+  save.notes.forEach((n, i) => { const d = document.createElement('div'); d.className = 'note'; d.style.setProperty('--r', [-1.5, 1, -.5][i] + 'deg');
+    d.innerHTML = '<span class="pin"></span>';
+    n.forEach((v, q) => { const s = document.createElement('button'); s.className = 'slot' + (sel && sel[0] === i && sel[1] === q ? ' sel' : ''); s.setAttribute('aria-label', `note ${i + 1} square ${q + 1}`);
+      s.appendChild(glyphCanvas(v, 96, i * 3 + q)); s.onclick = () => { sel = [i, q]; renderNotes(); }; d.appendChild(s); });
+    box.appendChild(d); });
+}
+function put(k) {
+  if (!sel) { sel = [0, 0]; for (let i = 0; i < 3 && !sel.found; i++) for (let q = 0; q < 3; q++) if (save.notes[i][q] < 0) { sel = [i, q]; sel.found = 1; break; } }
+  save.notes[sel[0]][sel[1]] = k; persist(); sfx.scratch();
+  if (k >= 0) { let [i, q] = sel; q++; if (q > 2) { q = 0; i = (i + 1) % 3; } sel = [i, q]; }
+  renderNotes();
+}
+$('boardDone').onclick = () => { waker.hands = .6; resume(); };
+
+// Chest
+let dial = [0, 0, 0];
+function openChest() {
+  dial = [0, 0, 0]; const box = $('dials'); box.innerHTML = '';
+  dial.forEach((_, i) => { const d = document.createElement('div'); d.className = 'dial';
+    const up = document.createElement('button'), face = document.createElement('div'), dn = document.createElement('button');
+    up.className = dn.className = 'arr'; up.textContent = '▲'; dn.textContent = '▼'; face.className = 'face';
+    const draw = () => { face.innerHTML = ''; face.appendChild(glyphCanvas(dial[i], 96, 20 + i)); };
+    up.onclick = () => { dial[i] = (dial[i] + 1) % 6; draw(); tone(700, .04, 'square', .02); };
+    dn.onclick = () => { dial[i] = (dial[i] + 5) % 6; draw(); tone(600, .04, 'square', .02); };
+    draw(); d.append(up, face, dn); box.appendChild(d); });
+  pause('chest');
+}
+$('chestTry').onclick = () => {
+  if (dial.every((v, i) => v === CODE[i])) {
+    save.solved = true; persist(); sfx.win(); const x = $('wonCanvas').getContext('2d'); x.clearRect(0, 0, 300, 300);
+    x.fillStyle = '#ffeec2'; x.strokeStyle = INK; x.lineWidth = 8; x.beginPath(); x.moveTo(150, 60);
+    for (let i = 0; i <= 8; i++) { const a = Math.PI * (1.1 + i * .1); x.lineTo(150 + Math.cos(a) * 110, 210 + Math.sin(a) * 140); } x.closePath(); x.fill(); x.stroke();
+    for (let i = 1; i < 8; i++) { const a = Math.PI * (1.1 + i * .1); x.beginPath(); x.moveTo(150, 210); x.lineTo(150 + Math.cos(a) * 100, 210 + Math.sin(a) * 125); x.lineWidth = 4; x.stroke(); }
+    $('wonDays').textContent = `It took you ${save.day} day${save.day > 1 ? 's' : ''}.`; pause('won');
+  } else { sfx.clunk(); const c = $('chestCard'); c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake'); }
+};
+$('chestClose').onclick = resume;
+$('wonDone').onclick = resume;
+$('wonReset').onclick = () => { wipe(); };
+
+// Night and morning
+function nightfall() {
+  state = 'night'; const f = $('fade'); f.textContent = 'Night falls.'; f.classList.add('show');
+  setTimeout(() => { f.textContent = 'You forget the day. Only the Board remembers.'; }, 1600);
+  setTimeout(() => { newDay(); f.classList.remove('show'); }, 4200);
+}
+function newDay() {
+  save.day++; persist(); dayT = 0; dug = false; warned = false;
+  Object.assign(waker, { x: P.hammock[0], z: -0.3, tx: P.hammock[0], tz: -0.3, dir: 'front', moving: false, flip: false, hands: 0, target: null, asleep: 1.4 });
+  state = 'play'; sfx.bell();
+}
+function wipe() { save = { notes: [[-1, -1, -1], [-1, -1, -1], [-1, -1, -1]], day: 0, solved: false }; persist(); resume(); newDay(); toast('A fresh start. The Board is empty.'); }
+
+// ---------------- input ----------------
+cv.addEventListener('pointerdown', e => {
+  if (state !== 'play' || waker.asleep > 0) return; ac(); startWaves();
+  const [x, z] = toIsland(e.clientX, e.clientY);
+  for (const sp of SPOTS) { if (sp.when && !sp.when(dayT)) continue; if (sp.id === 'dig' && dug) continue;
+    const [sx, sy] = toScreen(...sp.pos); if (Math.hypot(e.clientX - sx, e.clientY - (sy - 14 * U())) < sp.r * U() * 1.1) {
+      waker.tx = sp.at[0]; waker.tz = sp.at[1]; waker.target = sp.id; return; } }
+  if (inside(x, z)) { waker.tx = x; waker.tz = z; waker.target = null; }
+  else { const k = Math.sqrt(0.86 / (x * x / 0.92 + z * z / 0.86 + 1e-6)) * .98; waker.tx = x * k; waker.tz = z * k; waker.target = null; }
+});
+$('menuBtn').onclick = () => { if (state === 'play') pause('menu'); };
+$('resumeBtn').onclick = resume;
+$('restartDay').onclick = () => { resume(); nightfall(); };
+$('wipeBtn').onclick = wipe;
+$('startBtn').onclick = () => { ac(); startWaves(); resume(); sfx.bell(); if (save.day > 1) toast('Read the Board before you go.'); };
+$('resetBtn').onclick = () => { ac(); startWaves(); wipe(); };
+
+// test hook (only with #debug in the URL)
+if (location.hash === '#debug') window.__dt = { set t(v) { dayT = v; }, get t() { return dayT; }, get waker() { return waker; }, get save() { return save; }, tap: (x, z) => { const [sx, sy] = toScreen(x, z); return [sx, sy]; } };
+
+// ---------------- loop ----------------
+let last = performance.now();
+function loop(now) { const dt = Math.min(.05, (now - last) / 1000); last = now; update(dt); drawWorld(); drawLight(); drawSky(); requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
