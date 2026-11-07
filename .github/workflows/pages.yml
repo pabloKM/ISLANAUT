@@ -34,7 +34,7 @@ jobs:
       - name: Build front page
         run: |
           mkdir -p _site
-          rsync -a --exclude .git --exclude .github --exclude _site ./ _site/
+          rsync -a --exclude .git --exclude .github --exclude _site --exclude .gitignore ./ _site/
           node scripts/build-index.mjs --out _site
           touch _site/.nojekyll
       - name: Publish to gh-pages branch
