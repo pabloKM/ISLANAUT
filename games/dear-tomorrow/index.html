@@ -75,7 +75,7 @@
   <h2>Dear Tomorrow</h2>
   <p class="small">Test island · not the real game. Nothing here will be in the finished game.</p>
   <p>You have one day here. When night falls, you forget everything, except what's pinned to the <b>Board</b>.</p>
-  <p>Tap anywhere to walk. Tap things to look at them. Something on this island is locked.</p>
+  <p>Tap to walk, <b>double-tap to hurry</b>. Tap things to look at them. Something on this island is locked.</p>
   <button class="btn" id="startBtn">Wake up</button>
   <button class="btn alt" id="resetBtn">Start over (clear the Board)</button>
   <p class="small" style="margin-top:12px">Waker by PabloKM · test build by Claude (AI)</p>
@@ -189,7 +189,8 @@ const SPOTS = [ // interactables: where to stand, what happens
 
 // ---------------- world state ----------------
 let state = 'intro', dayT = 0, time = 0, dug = false, boil = 0;
-const waker = { x: P.hammock[0], z: -0.3, tx: P.hammock[0], tz: -0.3, dir: 'front', moving: false, flip: false, hands: 0, target: null, asleep: 1.2 };
+const waker = { x: P.hammock[0], z: -0.3, tx: P.hammock[0], tz: -0.3, dir: 'front', moving: false, flip: false, hands: 0, target: null, asleep: 1.2, hurry: false, phase: 0 };
+let puffs = [];
 let W = 0, H = 0, DPR = 1, cx = 0, cy = 0, rx = 0, ry = 0;
 function resize() {
   DPR = Math.min(2, devicePixelRatio || 1); W = innerWidth; H = innerHeight;
@@ -226,7 +227,52 @@ function startWaves() {
 const sfx = { scratch: () => { tone(900, .04, 'square', .015); tone(1200, .03, 'square', .012, .04); }, open: () => [523, 659, 784].forEach((f, i) => tone(f, .25, 'triangle', .05, i * .1)),
   clunk: () => tone(110, .2, 'square', .05), clue: () => { tone(659, .3, 'sine', .05); tone(988, .4, 'sine', .04, .15); },
   win: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .35, 'triangle', .05, i * .12)), bell: () => { tone(392, 1.2, 'sine', .05); tone(587, 1.2, 'sine', .03, .02); } };
-$('soundBtn').onclick = () => { soundOn = !soundOn; $('soundBtn').style.opacity = soundOn ? 1 : .45; ac(); startWaves(); if (waves) waves.gn.gain.value = soundOn ? .03 : 0; };
+// ---------------- music: only three small moments (waking, writing, nightfall) ----------------
+// Synthesized in code: kalimba-like plucks, a breathy flute-like line, and a soft pad. Reads like a music box.
+const NOTE = n => 440 * Math.pow(2, (n - 69) / 12);
+function pluck(midi, at = 0, v = .07) {
+  if (!soundOn) return; const a = ac(); if (!a) return; const t0 = a.currentTime + at, f = NOTE(midi);
+  for (const [mul, gv, dec] of [[1, v, 1.4], [3.02, v * .18, .35], [5.4, v * .06, .18]]) {
+    const o = a.createOscillator(), gn = a.createGain(); o.type = 'sine'; o.frequency.value = f * mul;
+    gn.gain.setValueAtTime(0, t0); gn.gain.linearRampToValueAtTime(gv, t0 + .005); gn.gain.exponentialRampToValueAtTime(.0001, t0 + dec);
+    o.connect(gn).connect(a.destination); o.start(t0); o.stop(t0 + dec + .05);
+  }
+}
+function flute(midi, at, dur, v = .045) {
+  if (!soundOn) return; const a = ac(); if (!a) return; const t0 = a.currentTime + at, f = NOTE(midi);
+  const o = a.createOscillator(), gn = a.createGain(), lp = a.createBiquadFilter(), vib = a.createOscillator(), vg = a.createGain();
+  o.type = 'triangle'; o.frequency.value = f; lp.type = 'lowpass'; lp.frequency.value = f * 3;
+  vib.frequency.value = 5; vg.gain.value = f * .006; vib.connect(vg).connect(o.frequency);
+  gn.gain.setValueAtTime(0, t0); gn.gain.linearRampToValueAtTime(v, t0 + .09); gn.gain.setValueAtTime(v, t0 + dur - .12); gn.gain.linearRampToValueAtTime(0, t0 + dur + .25);
+  o.connect(lp).connect(gn).connect(a.destination); o.start(t0); vib.start(t0); o.stop(t0 + dur + .3); vib.stop(t0 + dur + .3);
+  // a little breath at the start of each note
+  const len = a.sampleRate * .12, buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+  const nz = a.createBufferSource(), bp = a.createBiquadFilter(), ng = a.createGain(); nz.buffer = buf; bp.type = 'bandpass'; bp.frequency.value = f * 2; bp.Q.value = 2; ng.gain.value = v * .5;
+  nz.connect(bp).connect(ng).connect(a.destination); nz.start(t0);
+}
+let pad = null;
+const music = {
+  wake(day) { // a short rising phrase; its last note shifts a little from day to day
+    const ends = [79, 76, 81, 74], seq = [72, 76, 79, 81, ends[(day || 1) % ends.length]];
+    seq.forEach((n, i) => pluck(n, i * .2 + (i === seq.length - 1 ? .15 : 0), i === seq.length - 1 ? .08 : .06));
+  },
+  glyph(k) { if (k < 0) pluck(60, 0, .04); else pluck([72, 74, 76, 79, 81, 84][k], 0, .06); },
+  padOn() {
+    if (!soundOn || pad) return; const a = ac(); if (!a) return; const t0 = a.currentTime;
+    const out = a.createGain(), lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 800; out.gain.setValueAtTime(0, t0); out.gain.linearRampToValueAtTime(.022, t0 + 1.6);
+    const oscs = [57, 64, 69, 72].map((n, i) => { const o = a.createOscillator(); o.type = 'triangle'; o.frequency.value = NOTE(n); o.detune.value = (i % 2 ? 6 : -6); o.connect(lp); o.start(t0); return o; });
+    lp.connect(out).connect(a.destination); pad = { out, oscs };
+  },
+  padOff() {
+    if (!pad) return; const a = ac(), p = pad; pad = null; if (!a) return; const t0 = a.currentTime;
+    p.out.gain.cancelScheduledValues(t0); p.out.gain.setValueAtTime(p.out.gain.value, t0); p.out.gain.linearRampToValueAtTime(0, t0 + 1.2); p.oscs.forEach(o => o.stop(t0 + 1.3));
+  },
+  night() { // a slow, falling flute line as the light goes
+    [[76, 0, .5], [74, .55, .5], [72, 1.1, .55], [69, 1.75, .6], [67, 2.45, .5], [69, 3.0, 1.3]].forEach(([n, at, d]) => flute(n, at, d));
+    [57, 64].forEach((n, i) => pluck(n, 2.45 + i * .02, .03));
+  }
+};
+$('soundBtn').onclick = () => { soundOn = !soundOn; if (!soundOn) music.padOff(); $('soundBtn').style.opacity = soundOn ? 1 : .45; ac(); startWaves(); if (waves) waves.gn.gain.value = soundOn ? .03 : 0; };
 
 // ---------------- light through the day ----------------
 const KEYS = [[0, [255, 214, 204], 0.05], [0.22, [255, 247, 232], 0], [0.5, [255, 250, 240], 0], [0.7, [255, 178, 128], .06], [0.86, [92, 92, 160], .35], [1, [40, 40, 90], .6]];
@@ -335,7 +381,8 @@ function drawWaker() {
     g.font = `900 ${Math.round(14 * u)}px Trebuchet MS`; g.fillStyle = INK; g.fillText('z', mx + 18 * u, my - 18 * u - (time * 6 % 10)); return;
   }
   const img = IMG[waker.dir], ww = h * img.width / img.height;
-  const step = waker.moving ? Math.sin(time * 12) : 0;
+  const step = waker.moving ? Math.sin(waker.phase) : 0;
+  for (const p of puffs) { const [qx, qy] = toScreen(p.x, p.z); g.fillStyle = `rgba(255,252,240,${Math.min(1, p.l * 1.2)})`; g.strokeStyle = `rgba(27,23,18,${p.l * .8})`; g.lineWidth = 1.6; g.beginPath(); g.arc(qx, qy - (1 - p.l) * 8 * u, (3 + (1 - p.l) * 5) * u, 0, 7); g.fill(); g.stroke(); }
   g.fillStyle = 'rgba(27,23,18,.2)'; g.beginPath(); g.ellipse(px, py + 1, ww * .42, 4 * u, 0, 0, 7); g.fill();
   g.save(); g.translate(px, py - Math.abs(step) * 3 * u); g.rotate(step * .05); if (waker.flip) g.scale(-1, 1);
   g.drawImage(img, -ww / 2, -h, ww, h);
@@ -381,12 +428,14 @@ function update(dt) {
   if (dayT >= 1) { nightfall(); return; }
   if (waker.asleep > 0) { waker.asleep -= dt; if (waker.asleep <= 0) { waker.x = P.hammock[0]; waker.z = -0.3; waker.dir = 'front'; } return; }
   waker.hands = Math.max(0, waker.hands - dt * 2);
-  const dx = waker.tx - waker.x, dz = waker.tz - waker.z, d = Math.hypot(dx, dz), sp = .34 * dt;
+  for (const p of puffs) p.l -= dt * 2.2; puffs = puffs.filter(p => p.l > 0);
+  const dx = waker.tx - waker.x, dz = waker.tz - waker.z, d = Math.hypot(dx, dz), sp = .34 * (waker.hurry ? 2.5 : 1) * dt;
+  if (d > .005) { waker.phase += dt * (waker.hurry ? 22 : 12); if (waker.hurry && Math.random() < dt * 10) puffs.push({ x: waker.x + (Math.random() - .5) * .04, z: waker.z + .01, l: 1 }); }
   if (d > .005) {
     waker.moving = true; const k = Math.min(1, sp / d); waker.x += dx * k; waker.z += dz * k;
     if (Math.abs(dx) > Math.abs(dz) * .8) { waker.dir = 'side'; waker.flip = dx < 0; } else { waker.dir = dz < 0 ? 'back' : 'front'; waker.flip = false; }
   } else if (waker.moving) {
-    waker.moving = false; if (waker.dir === 'side' && !waker.target) waker.dir = 'front';
+    waker.moving = false; waker.hurry = false; if (waker.dir === 'side' && !waker.target) waker.dir = 'front';
     if (waker.target) { const t = waker.target; waker.target = null; interact(t); }
   }
 }
@@ -412,6 +461,7 @@ $('clueDone').onclick = resume;
 // Board editor
 let sel = null;
 function openBoard() {
+  music.padOn();
   waker.hands = 99; sel = null; renderNotes();
   const pal = $('palette'); pal.innerHTML = '';
   GLYPHS.forEach((name, k) => { const b = document.createElement('button'); b.className = 'gl'; b.setAttribute('aria-label', name); b.appendChild(glyphCanvas(k, 96, k)); b.onclick = () => put(k); pal.appendChild(b); });
@@ -428,11 +478,11 @@ function renderNotes() {
 }
 function put(k) {
   if (!sel) { sel = [0, 0]; for (let i = 0; i < 3 && !sel.found; i++) for (let q = 0; q < 3; q++) if (save.notes[i][q] < 0) { sel = [i, q]; sel.found = 1; break; } }
-  save.notes[sel[0]][sel[1]] = k; persist(); sfx.scratch();
+  save.notes[sel[0]][sel[1]] = k; persist(); sfx.scratch(); music.glyph(k);
   if (k >= 0) { let [i, q] = sel; q++; if (q > 2) { q = 0; i = (i + 1) % 3; } sel = [i, q]; }
   renderNotes();
 }
-$('boardDone').onclick = () => { waker.hands = .6; resume(); };
+$('boardDone').onclick = () => { waker.hands = .6; music.padOff(); resume(); };
 
 // Chest
 let dial = [0, 0, 0];
@@ -462,6 +512,7 @@ $('wonReset').onclick = () => { wipe(); };
 
 // Night and morning
 function nightfall() {
+  music.night();
   state = 'night'; const f = $('fade'); f.textContent = 'Night falls.'; f.classList.add('show');
   setTimeout(() => { f.textContent = 'You forget the day. Only the Board remembers.'; }, 1600);
   setTimeout(() => { newDay(); f.classList.remove('show'); }, 4200);
@@ -469,13 +520,17 @@ function nightfall() {
 function newDay() {
   save.day++; persist(); dayT = 0; dug = false; warned = false;
   Object.assign(waker, { x: P.hammock[0], z: -0.3, tx: P.hammock[0], tz: -0.3, dir: 'front', moving: false, flip: false, hands: 0, target: null, asleep: 1.4 });
-  state = 'play'; sfx.bell();
+  state = 'play'; setTimeout(() => music.wake(save.day), 900);
 }
 function wipe() { save = { notes: [[-1, -1, -1], [-1, -1, -1], [-1, -1, -1]], day: 0, solved: false }; persist(); resume(); newDay(); toast('A fresh start. The Board is empty.'); }
 
 // ---------------- input ----------------
+let lastTap = { t: 0, x: 0, y: 0 };
 cv.addEventListener('pointerdown', e => {
   if (state !== 'play' || waker.asleep > 0) return; ac(); startWaves();
+  const now = performance.now(), dbl = now - lastTap.t < 340 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 60;
+  lastTap = dbl ? { t: 0, x: 0, y: 0 } : { t: now, x: e.clientX, y: e.clientY };
+  waker.hurry = dbl;
   const [x, z] = toIsland(e.clientX, e.clientY);
   for (const sp of SPOTS) { if (sp.when && !sp.when(dayT)) continue; if (sp.id === 'dig' && dug) continue;
     const [sx, sy] = toScreen(...sp.pos); if (Math.hypot(e.clientX - sx, e.clientY - (sy - 14 * U())) < sp.r * U() * 1.1) {
@@ -487,7 +542,7 @@ $('menuBtn').onclick = () => { if (state === 'play') pause('menu'); };
 $('resumeBtn').onclick = resume;
 $('restartDay').onclick = () => { resume(); nightfall(); };
 $('wipeBtn').onclick = wipe;
-$('startBtn').onclick = () => { ac(); startWaves(); resume(); sfx.bell(); if (save.day > 1) toast('Read the Board before you go.'); };
+$('startBtn').onclick = () => { ac(); startWaves(); resume(); music.wake(save.day); if (save.day > 1) toast('Read the Board before you go.'); else setTimeout(() => toast('Tip: double-tap to hurry.', 3), 4000); };
 $('resetBtn').onclick = () => { ac(); startWaves(); wipe(); };
 
 // test hook (only with #debug in the URL)
