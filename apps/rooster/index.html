@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ROOSTER">
+<meta name="theme-color" content="#F6F5F1">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<title>ROOSTER</title>
+<style>
+:root{--bg:#F6F5F1;--panel:#FFFFFF;--track:#E9E7E0;--line:rgba(0,0,0,.12);--line2:rgba(0,0,0,.24);--text:#1F1E1C;--text2:#5F5E5A;--muted:#8C8A84;--accent-bg:#E6F1FB;--accent:#185FA5;--danger-bg:#FCEBEB;--danger:#A32D2D;--btn:#2C2C2A;--btn-text:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#1C1B19;--panel:#262523;--track:#34332F;--line:rgba(255,255,255,.12);--line2:rgba(255,255,255,.26);--text:#F1EFE8;--text2:#B4B2A9;--muted:#888780;--accent-bg:#0C447C;--accent:#B5D4F4;--danger-bg:#501313;--danger:#F7C1C1;--btn:#F1EFE8;--btn-text:#1F1E1C}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+body{display:flex;flex-direction:column;align-items:center;padding:8px 10px 10px}
+.wrap{width:100%;max-width:440px;display:flex;flex-direction:column;flex:1;min-height:0}
+header{display:flex;align-items:center;gap:6px;padding:2px 2px 4px}
+.ib{width:40px;height:40px;border-radius:20px;border:0.5px solid var(--line2);background:var(--panel);color:var(--text);font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.day{flex:1;text-align:center}
+.day b{display:block;font-size:17px;font-weight:600}
+.day span{font-size:12px;color:var(--muted)}
+.add{height:40px;border-radius:20px;border:none;background:var(--btn);color:var(--btn-text);font-size:15px;font-weight:600;padding:0 16px;cursor:pointer}
+.sub{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);padding:2px 6px 6px}
+.stage{flex:1;min-height:0;display:flex;justify-content:center}
+svg#box{width:100%;height:100%;max-height:100%;display:block;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;background:var(--panel);border:0.5px solid var(--line);border-radius:16px}
+#live{height:76px;flex:none;padding:8px 4px 0;font-size:14px;color:var(--text2);line-height:1.5;overflow:hidden}
+.chips{display:flex;gap:6px;overflow-x:auto;white-space:nowrap;padding-bottom:6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;display:inline-flex;align-items:center;height:36px;font-size:14px;padding:0 14px;border-radius:999px;border:0.5px solid var(--line2);color:var(--text);background:var(--panel);cursor:pointer}
+.chip.on{background:var(--accent-bg);color:var(--accent);border-color:transparent}
+#msg{font-size:13px;color:var(--danger);min-height:18px;padding:2px 4px}
+#msg button{margin-left:8px;font-size:13px;border:0.5px solid var(--line2);background:var(--panel);color:var(--text);border-radius:999px;padding:3px 10px}
+.back{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:flex-end;justify-content:center;z-index:10}
+.sheet{width:100%;max-width:440px;background:var(--panel);border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));box-shadow:0 -4px 20px rgba(0,0,0,.15)}
+.sheet h3{margin:0;font-size:17px;font-weight:600}
+.row{display:flex;gap:8px;align-items:center}
+input{font:inherit;font-size:16px;color:var(--text);background:var(--bg);border:0.5px solid var(--line2);border-radius:10px;height:44px;padding:0 12px;min-width:0}
+input[type=time]{flex:1}
+.tabs{display:flex;gap:6px;margin:14px 0 12px}
+.tabs button{flex:1;height:38px;border-radius:10px;border:0.5px solid var(--line2);background:var(--panel);color:var(--text);font-size:14px;cursor:pointer}
+.tabs button.on{background:var(--accent-bg);color:var(--accent);border-color:transparent}
+.sw{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.sw button{width:32px;height:32px;border-radius:16px;border:2px solid transparent;cursor:pointer;padding:0}
+.save{width:100%;height:48px;border:none;border-radius:12px;background:var(--btn);color:var(--btn-text);font-size:16px;font-weight:600;margin-top:6px;cursor:pointer}
+.hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5}
+.err{font-size:13px;color:var(--danger);min-height:18px;margin-top:4px}
+#logo{width:42px;height:42px;flex:none;cursor:pointer;border-radius:11px;overflow:hidden}#logo svg{width:42px;height:42px;display:block}
+.sug{margin-top:6px;border:0.5px solid var(--line2);border-radius:12px;overflow:hidden;display:none}
+.sug button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:none;border-top:0.5px solid var(--line);background:var(--panel);color:var(--text);font:inherit;font-size:15px;padding:10px 12px;cursor:pointer}
+.sug button:first-child{border-top:none}.sug button:active{background:var(--accent-bg)}
+.sug i{width:12px;height:12px;border-radius:6px;flex:none}.sug small{margin-left:auto;color:var(--muted);font-size:12px;white-space:nowrap}
+.x{border:none;background:none;color:var(--text2);font-size:22px;cursor:pointer;padding:4px 8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<div id="logo" role="button" aria-label="ROOSTER, go to today"></div>
+<button class="ib" id="prev" aria-label="Previous day">&#8249;</button>
+<div class="day"><b id="dayLabel">Today</b><span id="daySub"></span></div>
+<button class="ib" id="next" aria-label="Next day">&#8250;</button>
+<button class="add" id="addBtn" aria-label="Add an activity">+ Add</button>
+</header>
+<div class="sub"><span id="info">Tap an activity to see its times</span><span id="used"></span></div>
+<div class="stage">
+<svg id="box" viewBox="0 0 300 540" preserveAspectRatio="xMidYMid meet" aria-label="Your day as a coil of activities">
+<defs><filter id="goo" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b"/><feColorMatrix in="b" mode="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 20 -9"/></filter></defs>
+<path id="track" fill="none" stroke-width="42" stroke-linecap="round" style="stroke:var(--track)"/>
+<g id="gl" filter="url(#goo)"></g><g id="ol"></g>
+<line x1="0" x2="300" y1="270" y2="270" stroke-width="1" stroke-dasharray="3 4" style="stroke:var(--line2)"/>
+<g><rect x="3" y="252" width="26" height="15" rx="7.5" stroke-width="1" style="fill:var(--panel);stroke:var(--line2)"/><text x="16" y="259.5" text-anchor="middle" dominant-baseline="central" font-size="10" style="fill:var(--text2)">AM</text><rect x="3" y="273" width="26" height="15" rx="7.5" stroke-width="1" style="fill:var(--panel);stroke:var(--line2)"/><text x="16" y="280.5" text-anchor="middle" dominant-baseline="central" font-size="10" style="fill:var(--text2)">PM</text></g>
+<g id="tl"></g><g id="jl"></g><g id="fab"></g><g id="mn"></g>
+</svg>
+</div>
+<div id="msg" role="status"></div>
+<div id="live" data-other=""></div>
+<div class="sub" style="padding-top:4px"><span id="sync">Saved on this phone</span><span>Hold for options · pinch to resize</span></div>
+</div>
+
+<div class="back" id="back">
+<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="shT">
+<div class="row" style="justify-content:space-between;margin-bottom:12px"><h3 id="shT">New activity</h3><button class="x" id="shX" aria-label="Close">&times;</button></div>
+<input id="inN" type="text" maxlength="40" placeholder="Start typing, or pick one below" autocomplete="off" aria-label="Activity name" style="width:100%">
+<div class="sug" id="sug" role="listbox" aria-label="Activities you've logged before"></div>
+<div class="sw" id="sw"></div>
+<div class="tabs"><button id="tabT">Start and end</button><button id="tabD">Just a length</button></div>
+<div id="pT" class="row"><input id="inS" type="time" step="300" aria-label="Start time"><span style="color:var(--text2)">to</span><input id="inE" type="time" step="300" aria-label="End time"></div>
+<div id="pD" class="row" style="display:none"><input id="inH" type="number" inputmode="numeric" min="0" max="24" aria-label="Hours" style="width:80px"><span style="color:var(--text2)">h</span><input id="inM" type="number" inputmode="numeric" min="0" max="59" step="5" aria-label="Minutes" style="width:80px"><span style="color:var(--text2)">m</span></div>
+<div class="hint" id="shHint"></div>
+<div class="err" id="shErr"></div>
+<button class="save" id="shSave">Save</button>
+</div>
+</div>
+
+<script>
+// ROOSTER 3D wireframe logo: extruded pieces traced from the owner's rooster design,
+// projected to SVG. roosterSVG({ry,rx,size,bg,glow,id}) returns an <svg> string.
+(function (root) {
+  const T = (x, y) => [(x - 360) / 100, -(y - 450) / 100]; // traced crop coords -> model units
+  const PIECES = [
+    { name: 'tail', z: [-1.0, -0.25], col: '#9FE3FF',
+      pts: [[355,400],[533,192],[680,495],[578,500],[580,610]].map(p => T(...p)) },
+    { name: 'head', z: [-0.55, 0.55], col: '#45B8F5',
+      pts: [[182,62],[198,196],[238,212],[244,250],[355,400],[175,615],[162,505],[55,500],[100,283],[52,280],[72,262],[45,215],[95,222],[88,185]].map(p => T(...p)) },
+    { name: 'body', z: [-0.35, 0.9], col: '#2D8CF0',
+      pts: [[355,400],[580,610],[395,830],[175,615]].map(p => T(...p)) },
+  ];
+  const EYE = { c: T(172, 248), r: 0.34, z: 0.6, fill: 0.75 };
+
+  function rot(p, ry, rx) {
+    let [x, y, z] = p;
+    const cy = Math.cos(ry), sy = Math.sin(ry);
+    [x, z] = [x * cy + z * sy, -x * sy + z * cy];
+    const cx = Math.cos(rx), sx = Math.sin(rx);
+    [y, z] = [y * cx - z * sx, y * sx + z * cx];
+    return [x, y, z];
+  }
+
+  function roosterSVG(o = {}) {
+    const ry = o.ry ?? -0.22, rx = o.rx ?? 0.25, size = o.size ?? 512, id = o.id || 'rl';
+    const D = 11;
+    const raw = p => { const [x, y, z] = rot(p, ry, rx); const k = D / (D - z); return [x * k, y * k, z]; };
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    for (const pc of PIECES) for (const [x, y] of pc.pts) for (const z of pc.z) { const r = raw([x, y, z]); x0 = Math.min(x0, r[0]); x1 = Math.max(x1, r[0]); y0 = Math.min(y0, r[1]); y1 = Math.max(y1, r[1]); }
+    const S = (o.scale ?? 0.8) * size / Math.max(x1 - x0, y1 - y0), mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+    const proj = p => { const r = raw(p); return [size / 2 + (r[0] - mx) * S, size / 2 - (r[1] - my) * S, r[2]]; };
+    const segs = [], nodes = [];
+    for (const pc of PIECES) {
+      const n = pc.pts.length;
+      const F = pc.pts.map(([x, y]) => [x, y, pc.z[1]]), B = pc.pts.map(([x, y]) => [x, y, pc.z[0]]);
+      for (let i = 0; i < n; i++) {
+        const j = (i + 1) % n;
+        segs.push([F[i], F[j], pc.col, 1]);
+        segs.push([B[i], B[j], pc.col, 0.8]);
+        segs.push([F[i], B[i], pc.col, 0.9]);
+        nodes.push([F[i], pc.col], [B[i], pc.col]);
+      }
+      // faint depth rings between front and back faces give the wireframe its model feel
+      if (o.mesh !== false) for (const f of [0.33, 0.66]) { const zz = pc.z[0] + (pc.z[1] - pc.z[0]) * f; for (let i = 0; i < n; i++) { const j = (i + 1) % n; segs.push([[pc.pts[i][0], pc.pts[i][1], zz], [pc.pts[j][0], pc.pts[j][1], zz], pc.col, 0.3]); } }
+    }
+    const sorted = segs.map(([a, b, c, w]) => { const A = proj(a), B2 = proj(b); return { A, B: B2, c, w, z: (A[2] + B2[2]) / 2 }; }).sort((p, q) => p.z - q.z);
+    const zs = sorted.map(s => s.z), zmin = Math.min(...zs), zmax = Math.max(...zs);
+    const op = z => 0.28 + 0.72 * (z - zmin) / ((zmax - zmin) || 1);
+    const lw = (o.lw ?? 1) * size / 512;
+    let lines = '';
+    for (const s of sorted) {
+      const a = op(s.z) * s.w;
+      lines += `<line x1="${s.A[0].toFixed(1)}" y1="${s.A[1].toFixed(1)}" x2="${s.B[0].toFixed(1)}" y2="${s.B[1].toFixed(1)}" stroke="${s.c}" stroke-opacity="${a.toFixed(2)}" stroke-width="${((s.w > 0.5 ? 3.2 : 1.6) * lw * (0.7 + 0.5 * op(s.z))).toFixed(2)}" stroke-linecap="round"/>`;
+    }
+    let dots = '';
+    for (const [p, c] of nodes) { const P = proj(p); dots += `<circle cx="${P[0].toFixed(1)}" cy="${P[1].toFixed(1)}" r="${(3.4 * lw).toFixed(1)}" fill="${c}" fill-opacity="${op(P[2]).toFixed(2)}"/>`; }
+    // eye gauge: dim full track + bright 75% arc from 12 o'clock clockwise
+    const ring = (f0, f1, r) => { let d = ''; const N = 72; for (let i = 0; i <= N; i++) { const t = f0 + (f1 - f0) * i / N, a = Math.PI / 2 - t * 2 * Math.PI; const P = proj([EYE.c[0] + r * Math.cos(a), EYE.c[1] + r * Math.sin(a), EYE.z]); d += (i ? 'L' : 'M') + P[0].toFixed(1) + ' ' + P[1].toFixed(1); } return d; };
+    const ctr = proj([EYE.c[0], EYE.c[1], EYE.z]);
+    const tip = (() => { const a = Math.PI / 2 - EYE.fill * 2 * Math.PI; return proj([EYE.c[0] + EYE.r * Math.cos(a), EYE.c[1] + EYE.r * Math.sin(a), EYE.z]); })();
+    const eye = `<path d="${ring(0, 1, EYE.r)}" fill="none" stroke="#FFFFFF" stroke-opacity="0.22" stroke-width="${(7 * lw).toFixed(1)}"/>`
+      + `<path d="${ring(0, EYE.fill, EYE.r)}" fill="none" stroke="#FF8A3D" stroke-width="${(7 * lw).toFixed(1)}" stroke-linecap="round"/>`
+      + `<line x1="${ctr[0].toFixed(1)}" y1="${ctr[1].toFixed(1)}" x2="${tip[0].toFixed(1)}" y2="${tip[1].toFixed(1)}" stroke="#FF8A3D" stroke-width="${(2.6 * lw).toFixed(1)}" stroke-linecap="round"/>`
+      + `<circle cx="${ctr[0].toFixed(1)}" cy="${ctr[1].toFixed(1)}" r="${(5 * lw).toFixed(1)}" fill="#FFFFFF"/>`;
+    const glow = o.glow !== false;
+    const bg = o.bg === 'none' ? '' : `<radialGradient id="${id}g" cx="45%" cy="40%" r="75%"><stop offset="0" stop-color="#173A5E"/><stop offset="1" stop-color="#08111D"/></radialGradient>`;
+    const filt = glow ? `<filter id="${id}f" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="${(5 * lw).toFixed(1)}" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>` : '';
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}"><defs>${bg}${filt}</defs>`
+      + (bg ? `<rect width="${size}" height="${size}" fill="url(#${id}g)"/>` : '')
+      + `<g${glow ? ` filter="url(#${id}f)"` : ''}>${lines}${dots}${eye}</g></svg>`;
+  }
+  root.roosterSVG = roosterSVG;
+  if (typeof module !== 'undefined') module.exports = { roosterSVG };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+const $=id=>document.getElementById(id);
+const P=[["#AFA9EC","#26215C"],["#5DCAA5","#04342C"],["#F0997B","#4A1B0C"],["#ED93B1","#4B1528"],["#B4B2A9","#2C2C2A"],["#85B7EB","#042C53"],["#FAC775","#412402"],["#97C459","#173404"]];
+const W=300,H=540,NS="http://www.w3.org/2000/svg",svg=$('box');
+const gl=$('gl'),ol=$('ol'),jl=$('jl'),tl=$('tl'),mn=$('mn'),fab=$('fab');
+const ROWS=10,PT=6,RH=(H-2*PT)/ROWS,R=RH/2,TW=42,XL=R+TW/2+4,XR=W-XL,ST=2,FX=36,FY=H-36;
+const X=[],Y=[],ROW=[],STR=[],ry=i=>PT+RH*(i+.5);
+for(let i=0;i<ROWS;i++){const y=ry(i),rt=i%2==0;
+for(let s=0;s<=XR-XL;s+=ST){X.push(rt?XL+s:XR-s);Y.push(y);ROW.push(i);STR.push(1)}
+if(i<ROWS-1){const cy=y+R,da=ST/R;for(let a=-Math.PI/2+da;a<Math.PI/2;a+=da){X.push(rt?XR+R*Math.cos(a):XL-R*Math.cos(a));Y.push(cy+R*Math.sin(a));ROW.push(i);STR.push(0)}}}
+const NP=X.length;
+$('track').setAttribute('d','M'+X.map((x,i)=>x.toFixed(1)+' '+Y[i].toFixed(1)).join('L'));
+const idx=m=>Math.max(0,Math.min(NP-1,Math.round(m/1440*(NP-1))));
+const tim=i=>i/(NP-1)*1440;
+const fmt=m=>{m=Math.round(m);m=((m%1440)+1440)%1440;let h=Math.floor(m/60),mm=m%60,ap=h<12?'a':'p';h=h%12||12;return h+(mm?':'+String(mm).padStart(2,'0'):'')+ap};
+const fmt5=m=>fmt(Math.round(m/5)*5);
+const dur=m=>{m=Math.round(m);if(m<60)return m+'m';const h=Math.floor(m/60),r=m%60;return r?h+'h '+r+'m':h+'h'};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const keyOf=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const todayKey=()=>keyOf(new Date());
+const nowMin=()=>{const d=new Date();return d.getHours()*60+d.getMinutes()+d.getSeconds()/60};
+const newId=()=>Math.random().toString(36).slice(2,8)+Date.now().toString(36);
+const buzz=()=>{try{navigator.vibrate&&navigator.vibrate(12)}catch(_){}};
+const LS={get(k){try{return localStorage.getItem(k)}catch(_){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(_){}}};
+
+let S=[],t=0,sel=null,pressed=null,mode=null,p0=null,grab=0,hold=null,menu=null,timing=null,day=todayKey(),touched=false;
+let db=null,uid=null;
+
+const lockSVG=c=>`<path d="M-3.5 -1 v-2 a3.5 3.5 0 0 1 7 0 v2" fill="none" stroke="${c}" stroke-width="1.4"/><rect x="-5" y="-1" width="10" height="7.5" rx="1.5" fill="${c}"/>`;
+function mk(o){const p=document.createElementNS(NS,'path');p.setAttribute('fill','none');p.setAttribute('stroke-width',TW);p.setAttribute('stroke-linejoin','round');gl.append(p);
+const g=document.createElementNS(NS,'g');g.style.pointerEvents='none';g.style.display='none';
+const a=document.createElementNS(NS,'text');a.setAttribute('font-size','13');a.setAttribute('font-weight','600');a.setAttribute('text-anchor','middle');a.setAttribute('dominant-baseline','central');a.style.pointerEvents='none';
+const d2=document.createElementNS(NS,'text');d2.setAttribute('font-size','11');d2.setAttribute('text-anchor','middle');d2.setAttribute('dominant-baseline','central');d2.style.pointerEvents='none';tl.append(g,a,d2);
+const x={id:o.id||newId(),n:o.n,m:o.m,c:(o.c>=0&&o.c<P.length)?o.c:5,lk:!!o.lk,ts:o.ts||0,p,a,d2,g,cs:0,cm:0};paint(x);return x}
+function paint(x){const c=P[x.c];x.p.setAttribute('stroke',c[0]);x.a.setAttribute('fill',c[1]);x.d2.setAttribute('fill',c[1]);x.g.innerHTML=lockSVG(c[1])}
+function unmk(x){x.p.remove();x.a.remove();x.d2.remove();x.g.remove()}
+const total=()=>S.reduce((s,x)=>s+x.m,0);
+const valid=o=>o&&typeof o.n==='string'&&Number.isFinite(o.m)&&o.m>0&&o.m<=1440&&Number.isFinite(o.ts||0);
+function layout(){const L=S.filter(x=>x.lk);let c=0,ok=L.every(x=>x.ts>=0&&x.ts+x.m<=1440);
+for(const x of S){if(x.lk)continue;let mv=true;while(mv){mv=false;for(const l of L)if(c<l.ts+l.m&&c+x.m>l.ts){c=l.ts+l.m;mv=true}}x.ts=c;c+=x.m;if(c>1440)ok=false}
+for(let i=0;i<L.length;i++)for(let j=i+1;j<L.length;j++){const a=L[i],b=L[j];if(a.ts<b.ts+b.m&&b.ts<a.ts+a.m)ok=false}return ok}
+const serialize=()=>S.map(x=>({id:x.id,n:x.n,m:x.m,c:x.c,lk:x.lk,ts:x.ts}));
+
+let msgT=null;
+function msg(s,actLabel,act){clearTimeout(msgT);const m=$('msg');m.textContent=s||'';if(actLabel){const b=document.createElement('button');b.textContent=actLabel;b.onclick=()=>{act();m.textContent=''};m.append(b)}if(s)msgT=setTimeout(()=>{m.textContent=''},actLabel?6000:4000)}
+function upd(){$('used').textContent=dur(Math.max(0,1440-total()))+' unplanned'}
+function setInfo(){$('info').textContent=sel&&S.includes(sel)?sel.n+' · '+fmt(sel.ts)+'–'+fmt(sel.ts+sel.m)+(sel.lk?' · locked':''):(S.length?'Tap an activity to see its times':'Tap + Add or the stopwatch to start')}
+function renderHeader(){const [y,m,d]=day.split('-').map(Number),dt=new Date(y,m-1,d);const tk=todayKey();
+const diff=Math.round((dt-new Date(...tk.split('-').map((v,i)=>i==1?v-1:+v)))/864e5);
+$('dayLabel').textContent=diff===0?'Today':diff===-1?'Yesterday':diff===1?'Tomorrow':dt.toLocaleDateString(undefined,{weekday:'long'});
+$('daySub').textContent=dt.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}
+
+function pth(a,b,still){const i0=idx(a),i1=idx(b);if(i1-i0<1)return"";let d="";for(let i=i0;i<=i1;i++){const w=still?0:1.6*Math.sin(X[i]/24+t+ROW[i]);d+=(i==i0?"M":"L")+X[i].toFixed(1)+" "+(Y[i]+(STR[i]?w:0)).toFixed(1)}return d}
+function label(x,a,b){const i0=idx(a),i1=idx(b);let best=null,cur=null;
+for(let i=i0;i<=i1;i++){if(STR[i]){if(!cur||cur.r!==ROW[i])cur={r:ROW[i],s:i,e:i};cur.e=i;if(!best||cur.e-cur.s>best.e-best.s)best={...cur}}else cur=null}
+if(!best){x.a.textContent="";x.d2.textContent="";x.g.style.display='none';return}
+let s0=best.s,e0=best.e;if(s0===i0)s0+=7;if(e0===i1)e0-=7;
+const len=Math.max(0,(e0-s0)*ST),mid=Math.round((s0+e0)/2),lw=x.lk?14:0;
+const nm=x.n.length>18?x.n.slice(0,17)+'\u2026':x.n;
+const fits=len>nm.length*7.6+lw+6;x.a.textContent=fits?nm:"";x.d2.textContent=fits?dur(x.m):"";
+const tw=nm.length*7.2,cx=X[mid]+lw/2;x.a.setAttribute('x',cx);x.a.setAttribute('y',Y[mid]-7);x.d2.setAttribute('x',X[mid]);x.d2.setAttribute('y',Y[mid]+10);
+if(x.lk&&len>16){x.g.style.display='';x.g.setAttribute('transform',`translate(${fits?cx-tw/2-10:X[mid]},${fits?Y[mid]-9:Y[mid]-2})`)}else x.g.style.display='none'}
+function junctions(){const pts=[];S.forEach(x=>{pts.push(x.cs,x.cs+x.cm)});pts.sort((a,b)=>a-b);
+const ms=[];pts.forEach(m=>{if(!ms.length||m-ms[ms.length-1]>2)ms.push(m)});
+let h="";const placed=[];
+ms.forEach(m=>{const i=idx(m),a=Math.max(0,i-1),b=Math.min(NP-1,i+1);let r=Math.atan2(Y[b]-Y[a],X[b]-X[a])*180/Math.PI+90;while(r>=90)r-=180;while(r<-90)r+=180;
+const x=X[i],y=Y[i];if(placed.some(q=>Math.hypot(q.x-x,q.y-y)<20))return;placed.push({x,y});
+h+=`<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${r.toFixed(1)})"><text x="0" y="0.5" text-anchor="middle" dominant-baseline="central" font-size="12.5" font-weight="900" letter-spacing="0.6" style="font-family:'Arial Black','Helvetica Neue',Arial,sans-serif;fill:#ffffff;stroke:#1a1a1a;stroke-width:2.2px;stroke-linejoin:round;paint-order:stroke">${fmt5(m)}</text></g>`});
+if(day===todayKey()){const ni=idx(nowMin()),pr=timing?3+2*Math.abs(Math.sin(t*2)):0;
+h+=`<circle cx="${X[ni].toFixed(1)}" cy="${Y[ni].toFixed(1)}" r="${(9+pr).toFixed(1)}" fill="none" stroke="#D85A30" stroke-width="2" stroke-opacity="${timing?.7:0}"/><circle cx="${X[ni].toFixed(1)}" cy="${Y[ni].toFixed(1)}" r="5" fill="#D85A30" stroke="#ffffff" stroke-width="2"/>`}
+jl.innerHTML=h}
+function watch(run,sec){let s=`<circle cy="2" r="11" fill="none" stroke="#fff" stroke-width="2"/><rect x="-3" y="-14" width="6" height="3" rx="1" fill="#fff"/><line x1="8" y1="-7" x2="10.5" y2="-9.5" stroke="#fff" stroke-width="2" stroke-linecap="round"/>`;
+s+=run?`<rect x="-3.5" y="-1.5" width="7" height="7" rx="1.2" fill="#fff"/>`:`<path d="M-5 2h10M0 -3v10" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>`;
+const ring=run?`<circle r="27" fill="none" stroke="#D85A30" stroke-width="3" stroke-dasharray="${(169.6*((sec%60)/60)).toFixed(1)} 170" transform="rotate(-90)"/>`:"";
+return `<circle r="24" fill="#2C2C2A" stroke="#ffffff" stroke-width="1.5"/>`+ring+s}
+function liveItem(){return timing?S.find(x=>x.id===timing.id):null}
+function drawFab(){const sec=timing?(Date.now()-timing.t0)/1000:0;let s=`<g transform="translate(${FX} ${FY})" style="cursor:pointer">${watch(!!timing,sec)}</g>`;
+if(timing){const x=liveItem(),m=Math.max(0,Math.floor(sec/60)),ss=Math.floor(sec%60);const tx=(x?x.n:timing.n||'Timing')+' · '+(m>=60?Math.floor(m/60)+':'+String(m%60).padStart(2,'0')+':':m+':')+String(ss).padStart(2,'0'),w=Math.min(220,tx.length*6.9+24);
+s+=`<rect x="${FX+32}" y="${FY-14}" width="${w.toFixed(0)}" height="28" rx="14" stroke-width="1" style="fill:var(--panel);stroke:var(--line2)"/><circle cx="${FX+45}" cy="${FY}" r="4" fill="#D85A30"/><text x="${FX+54}" y="${FY}" dominant-baseline="central" font-size="12" font-weight="600" style="fill:var(--text)">${esc(tx)}</text>`}
+fab.innerHTML=s}
+
+const DEFAULTS=["Work","Class","Study","Eating","Commute","Exercise","Chores","Social","Phone","Relaxing"];
+function liveUI(){const L=$('live');
+if(timing&&timing.day===day){const x=liveItem();const names=[...new Set([...stats().map(s=>s.n),...S.filter(s=>s!==x).map(s=>s.n),...DEFAULTS])].filter(n=>n&&n!=='New activity').slice(0,12);
+if(L.dataset.other==='1'){L.innerHTML=`<div style="margin-bottom:4px">What are you doing?</div><div class="row"><input id="liveIn" type="text" maxlength="40" placeholder="Name it" aria-label="Name what you're doing" style="flex:1;height:38px"><button class="chip" id="liveSet">Set</button><button class="chip" id="liveCancel" aria-label="Cancel">&times;</button></div>`;
+const go=()=>{const v=$('liveIn').value.trim();if(v){L.dataset.other='';nameLive(v)}};$('liveSet').addEventListener('click',go);$('liveIn').addEventListener('keydown',e=>{if(e.key==='Enter')go()});$('liveCancel').addEventListener('click',()=>{L.dataset.other='';liveUI()});setTimeout(()=>{try{$('liveIn').focus()}catch(_){}},30);return}
+L.innerHTML=`<div style="margin-bottom:4px">What are you doing?</div><div class="chips">${names.map(n=>`<span class="chip${x&&x.n===n?' on':''}" data-nm="${esc(n)}" role="button" tabindex="0">${esc(n)}</span>`).join('')}<span class="chip" id="other" role="button" tabindex="0">+ Other</span></div>`;
+L.querySelectorAll('[data-nm]').forEach(e=>e.addEventListener('click',()=>nameLive(e.dataset.nm)));$('other').addEventListener('click',()=>{L.dataset.other='1';liveUI()})}
+else if(timing){L.innerHTML=`<span style="color:var(--muted)">You're timing something on another day. Tap the stopwatch to go back to it.</span>`}
+else L.innerHTML=`<span style="color:var(--muted)">${day===todayKey()?'Tap the stopwatch to start timing what you\u2019re doing now.':'Viewing another day. Use + Add to fill it in.'}</span>`}
+function nameLive(n){const x=liveItem();if(!x)return;x.n=n.slice(0,40);const used=S.find(s=>s!==x&&s.n===x.n);if(used)x.c=used.c;paint(x);touched=true;save();liveUI();drawFab();setInfo()}
+
+/* ---------- history (for autofill) ---------- */
+const hist={};
+try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('rooster.day.')){const d=k.slice(12);hist[d]=readLocalRaw(k)}}}catch(_){}
+function readLocalRaw(k){try{const a=JSON.parse(LS.get(k)||'[]');return Array.isArray(a)?a.filter(valid):[]}catch(_){return[]}}
+function stats(){const m=new Map(),live=timing?timing.id:null;
+const cur=serialize();for(const [d,items] of Object.entries({...hist,[day]:cur}))for(const o of items){if(!o||o.id===live||!o.n||o.n==='New activity'||o.m<1)continue;
+const k=o.n.trim().toLowerCase();const s=m.get(k)||{n:o.n.trim(),tot:0,cnt:0,c:o.c,last:''};s.tot+=o.m;s.cnt++;if(d>=s.last){s.last=d;s.c=o.c;s.n=o.n.trim()}m.set(k,s)}
+return [...m.values()].map(s=>({...s,avg:Math.max(5,Math.round(s.tot/s.cnt/5)*5)})).sort((a,b)=>b.cnt-a.cnt||b.last.localeCompare(a.last))}
+/* ---------- storage ---------- */
+let wT=null,writing=false,again=null;
+function withTO(p,ms=10000){return Promise.race([p,new Promise((_,r)=>setTimeout(()=>r({code:'timeout'}),ms))])}
+const dayRef=k=>db.collection("data/users/"+uid).doc("day-"+k);
+const stateRef=()=>db.collection("data/users/"+uid).doc("state");
+function setSync(s){$('sync').textContent=s}
+function save(){const k=day,items=serialize();hist[k]=items;LS.set('rooster.day.'+k,JSON.stringify(items));if(!db){setSync('Saved on this phone');return}clearTimeout(wT);wT=setTimeout(()=>cloudWrite(k,items),700)}
+async function cloudWrite(k,items){if(writing){again={k,items};return}writing=true;setSync('Saving\u2026');
+try{await withTO(dayRef(k).set({items,updated:Date.now()}));setSync('Saved to your account')}
+catch(e){setSync(e&&e.code==='quota_exceeded'?'Account storage is full':'Saved on this phone (account sync paused)')}
+writing=false;if(again){const a=again;again=null;cloudWrite(a.k,a.items)}}
+let tw=false;
+async function saveTiming(){const v=timing?JSON.stringify(timing):'';LS.set('rooster.timing',v);if(!db||tw)return;tw=true;try{await withTO(stateRef().set({timing:timing||null,updated:Date.now()}))}catch(_){}tw=false}
+function readLocal(k){try{const a=JSON.parse(LS.get('rooster.day.'+k)||'[]');return Array.isArray(a)?a.filter(valid):[]}catch(_){return[]}}
+function clearDay(){closeMenu();S.forEach(unmk);S=[];sel=null}
+function buildDay(items,animate){items.forEach(o=>S.push(mk(o)));layout();S.forEach(x=>{x.cs=animate?0:x.ts;x.cm=animate?0:x.m})}
+async function loadDay(k,animate){day=k;touched=false;closeSheet();clearDay();buildDay(readLocal(k),animate);renderHeader();upd();setInfo();liveUI();drawFab();
+if(!db)return;try{const s=await withTO(dayRef(k).get());if(day!==k||touched)return;
+if(s.exists){const d=s.data(),items=Array.isArray(d.items)?d.items.filter(valid):[];hist[k]=items;if(JSON.stringify(items)!==JSON.stringify(serialize())){clearDay();buildDay(items,false);LS.set('rooster.day.'+k,JSON.stringify(items));upd();setInfo();liveUI()}setSync('Saved to your account')}
+else if(S.length)cloudWrite(k,serialize());else setSync('Saved to your account')}catch(e){setSync('Saved on this phone (account sync paused)')}}
+
+/* ---------- timer ---------- */
+async function toggleTimer(){closeMenu();
+if(timing){if(timing.day!==day){await loadDay(timing.day,false)}stopTimer();return}
+if(day!==todayKey())await loadDay(todayKey(),false);
+const ts=Math.floor(nowMin());const x=mk({n:'New activity',m:1,c:5,lk:true,ts});S.push(x);
+if(!layout()){S=S.filter(z=>z!==x);unmk(x);layout();const at=S.find(s=>s.lk&&s.ts<=ts&&s.ts+s.m>ts);msg(at?at.n+' is locked at this time. Unlock or shorten it first.':'There\u2019s no room at this time.');return}
+x.cs=x.ts;x.cm=0;timing={id:x.id,t0:Date.now(),start:ts,day,n:x.n};sel=x;touched=true;buzz();save();saveTiming();upd();setInfo();liveUI();drawFab()}
+function stopTimer(note){const x=liveItem();if(x){x.m=Math.max(1,Math.min(1440-x.ts,Math.round((Date.now()-timing.t0)/60000)));if(!layout()){x.m=Math.max(1,x.m-1);layout()}}
+timing=null;touched=true;save();saveTiming();upd();setInfo();liveUI();drawFab();if(note)msg(note);else if(x)msg('Logged '+x.n+' for '+dur(x.m)+'.')}
+function tickTimer(){if(!timing)return;drawFab();if(timing.day!==day)return;const x=liveItem();if(!x){timing=null;saveTiming();liveUI();drawFab();return}
+let m=Math.max(1,Math.round((Date.now()-timing.t0)/60000));if(x.ts+m>=1440){x.m=1440-x.ts;layout();stopTimer('Midnight: timer stopped.');return}
+if(m!==x.m){const old=x.m;x.m=m;if(!layout()){x.m=old;layout();const nx=S.filter(s=>s.lk&&s!==x&&s.ts>=x.ts).sort((a,b)=>a.ts-b.ts)[0];stopTimer('Timer stopped where '+(nx?nx.n:'the next activity')+' begins.');return}upd();if(sel===x)setInfo();if(m%5===0)save()}}
+
+/* ---------- menu ---------- */
+function closeMenu(){menu=null;mn.innerHTML=""}
+function menuGeom(){const bw=67,bh=36,gp=5;let by=menu.y-76,sy=by-42;if(sy<4){by=menu.y+40;sy=by+bh+10}
+const x0=Math.max(4,Math.min(W-4*bw-3*gp-4,menu.x-(4*bw+3*gp)/2));
+menu.r=['lock','color','edit','del'].map((k,i)=>({k,x:x0+i*(bw+gp),y:by,w:bw,h:bh}));
+const sx0=Math.max(18,Math.min(W-18-7*30,menu.x-105));menu.sw=P.map((c,i)=>({k:'sw',i,x:sx0+i*30,y:sy+15}))}
+function drawMenu(){if(!menu){mn.innerHTML="";return}menuGeom();
+let h=menu.sticky?"":`<circle cx="${menu.x}" cy="${menu.y}" r="24" fill="none" stroke-width="2" style="stroke:var(--text2)"/>`;
+menu.r.forEach(b=>{const on=menu.hover===b.k||(b.k==='color'&&menu.colorOpen),dg=b.k==='del';const fill=on?(dg?'var(--danger-bg)':'var(--accent-bg)'):'var(--panel)',tc=on?(dg?'var(--danger)':'var(--accent)'):'var(--text)';
+const lb=b.k==='del'?'Delete':b.k==='color'?'Color':b.k==='edit'?'Edit':(menu.seg.lk?'Unlock':'Lock');
+h+=`<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="18" stroke-width="1" style="fill:${fill};stroke:var(--line2)"/><text x="${b.x+b.w/2}" y="${b.y+b.h/2}" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="600" style="fill:${tc}">${lb}</text>`});
+if(menu.colorOpen){const s0=menu.sw[0],s7=menu.sw[7];h+=`<rect x="${s0.x-17}" y="${s0.y-17}" width="${s7.x-s0.x+34}" height="34" rx="17" stroke-width="1" style="fill:var(--panel);stroke:var(--line2)"/>`;
+menu.sw.forEach(s=>{const on=menu.hover==='sw'&&menu.hi===s.i,cur=menu.seg.c===s.i;h+=`<circle cx="${s.x}" cy="${s.y}" r="${on?13:11}" fill="${P[s.i][0]}" stroke="${on||cur?P[s.i][1]:'none'}" stroke-width="2"/>`})}
+mn.innerHTML=h}
+function hit(q){if(!menu)return null;if(menu.colorOpen){const s=menu.sw.find(s=>Math.hypot(s.x-q.x,s.y-q.y)<15);if(s)return s}
+return menu.r.find(b=>q.x>=b.x-3&&q.x<=b.x+b.w+3&&q.y>=b.y-8&&q.y<=b.y+b.h+8)||null}
+function act(hv){const x=menu.seg;const live=timing&&timing.id===x.id;
+if(hv.k==='del'){if(live){timing=null;saveTiming();drawFab();liveUI()}const pos=S.indexOf(x),snap={id:x.id,n:x.n,m:x.m,c:x.c,lk:x.lk,ts:x.ts};unmk(x);S=S.filter(z=>z!==x);if(sel===x)sel=null;layout();upd();setInfo();touched=true;save();
+msg('Deleted '+snap.n+'.','Undo',()=>{const y=mk(snap);S.splice(Math.min(pos,S.length),0,y);if(!layout()){S=S.filter(z=>z!==y);unmk(y);layout();msg('Couldn\u2019t put it back: something else is there now.');return}y.cs=y.ts;y.cm=y.m;upd();setInfo();save()})}
+else if(hv.k==='lock'){if(live){msg('Stop the timer before unlocking.');return}x.lk=!x.lk;if(!x.lk)S.sort((a,b)=>a.ts-b.ts);layout();sel=x;setInfo();touched=true;save()}
+else if(hv.k==='sw'){x.c=hv.i;paint(x);touched=true;save()}
+else if(hv.k==='edit'){if(live){msg('Stop the timer before editing this one.');return}openSheet('edit',x)}}
+
+/* ---------- frame ---------- */
+function frame(){S.forEach(x=>{const a=x.cs+.5,b=x.cs+x.cm-.5,d=pth(a,b,x.lk);x.p.setAttribute('d',d);label(x,a,b)});junctions()}
+let lastTick=0;
+function step(ts){t+=.04;if(ts-lastTick>500){lastTick=ts;tickTimer()}
+S.forEach(x=>{if(!(x===pressed&&mode==='move'))x.cs+=(x.ts-x.cs)*.14;x.cm+=(x.m-x.cm)*.18});frame();requestAnimationFrame(step)}
+
+/* ---------- input ---------- */
+function pt(e){const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const m=svg.getScreenCTM();if(!m)return{x:0,y:0};const r=p.matrixTransform(m.inverse());return{x:r.x,y:r.y}}
+function near(q){let bi=0,bd=1e9;for(let i=0;i<NP;i+=2){const d=(X[i]-q.x)**2+(Y[i]-q.y)**2;if(d<bd){bd=d;bi=i}}return{m:tim(bi),d:Math.sqrt(bd)}}
+const at=m=>S.find(s=>m>=s.ts&&m<=s.ts+s.m);
+function endPress(){clearTimeout(hold);hold=null;if(pressed&&mode&&mode!=='pinch'){touched=true;save()}else if(mode==='pinch'){touched=true;save()}pressed=null;mode=null}
+svg.addEventListener('contextmenu',e=>e.preventDefault());
+const cap=e=>{try{svg.setPointerCapture(e.pointerId)}catch(_){}};const ptrs=new Map();let pinch=null;
+function applyM(x,nm){if(nm===x.m)return true;if(timing&&timing.id===x.id){msg('This one is being timed live.');return false}const old=x.m;x.m=nm;if(!layout()){x.m=old;layout();msg('No more room for that.');return false}upd();sel=x;setInfo();return true}
+function pdist(){const v=[...ptrs.values()];return Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y)||1}
+function startPinch(x){clearTimeout(hold);closeMenu();if(timing&&timing.id===x.id){msg('This one is being timed live.');return}pinch={x,d0:pdist(),m0:x.m};pressed=x;mode='pinch';sel=x;setInfo()}
+svg.addEventListener('pointerdown',e=>{const q=pt(e);ptrs.set(e.pointerId,q);
+if(ptrs.size===2){cap(e);let x=pressed;if(!x){const v=[...ptrs.values()],n=near({x:(v[0].x+v[1].x)/2,y:(v[0].y+v[1].y)/2});if(n.d<=TW/2+10)x=at(n.m)}if(x&&mode!=='pinch')startPinch(x);return}
+if(ptrs.size>2)return;
+if(menu&&menu.sticky){const hv=hit(q);if(hv&&hv.k==='color')return;if(hv)act(hv);closeMenu();return}
+closeMenu();
+if(Math.hypot(q.x-FX,q.y-FY)<28){toggleTimer();return}
+const n=near(q);if(n.d>TW/2+2)return;const x=at(n.m);if(!x)return;
+pressed=x;p0=q;mode=null;grab=n.m-x.ts;cap(e);clearTimeout(hold);
+hold=setTimeout(()=>{if(pressed&&!mode){buzz();menu={x:p0.x,y:p0.y,seg:pressed,hover:null,colorOpen:false};drawMenu()}},450)});
+svg.addEventListener('pointermove',e=>{const q=pt(e);if(ptrs.has(e.pointerId))ptrs.set(e.pointerId,q);
+if(mode==='pinch'){if(pinch&&ptrs.size===2){let nm=Math.round(pinch.m0*pdist()/pinch.d0/15)*15;nm=Math.max(15,Math.min(1440,nm));applyM(pinch.x,nm)}return}
+if(menu){if(menu.sticky)return;const hv=hit(q);const k=hv?hv.k:null,hi=hv&&hv.k==='sw'?hv.i:null;
+if(k==='color')menu.colorOpen=true;else if(k==='lock'||k==='del'||k==='edit')menu.colorOpen=false;
+if(k!==menu.hover||hi!==menu.hi){menu.hover=k;menu.hi=hi;drawMenu()}return}
+if(!pressed)return;
+if(!mode){if(Math.hypot(q.x-p0.x,q.y-p0.y)<7)return;clearTimeout(hold);
+if(pressed.lk){msg(timing&&timing.id===pressed.id?'This one is being timed live.':'Locked in place. Hold it to unlock.');pressed=null;return}
+mode=(pressed.m-grab<Math.max(10,pressed.m*.15))?'size':'move';sel=pressed;gl.append(pressed.p)}
+const n=near(q);
+if(mode==='move'){const d=pressed;d.cs=Math.max(0,n.m-grab);const c=d.cs+d.m/2,U=S.filter(x=>!x.lk),i=U.indexOf(d);
+const sw=o=>{const a=S.indexOf(d),b=S.indexOf(o);[S[a],S[b]]=[S[b],S[a]];layout()};
+if(i>0&&c<U[i-1].ts+U[i-1].m/2)sw(U[i-1]);else if(i<U.length-1&&c>U[i+1].ts+U[i+1].m/2)sw(U[i+1])}
+else{let nm=Math.round((n.m-pressed.ts)/15)*15;nm=Math.max(15,nm);applyM(pressed,nm)}
+setInfo()});
+function lift(e){ptrs.delete(e.pointerId);if(mode==='pinch'){if(ptrs.size===0){pinch=null;endPress()}return true}return false}
+svg.addEventListener('pointerup',e=>{if(lift(e))return;
+if(menu&&!menu.sticky){const hv=menu.hover;
+if(hv==='color'){menu.sticky=true;menu.colorOpen=true;menu.hover=null;drawMenu()}
+else{if(hv==='sw')act({k:'sw',i:menu.hi});else if(hv)act({k:hv});closeMenu()}}
+else if(pressed&&!mode){sel=pressed;setInfo()}
+endPress()});
+svg.addEventListener('pointercancel',e=>{if(lift(e))return;if(menu&&!menu.sticky)closeMenu();endPress()});
+svg.addEventListener('lostpointercapture',e=>{if(lift(e))return;if(menu&&!menu.sticky&&!pressed)closeMenu();if(pressed)endPress()});
+svg.addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();const n=near(pt(e));if(n.d>TW/2+2)return;const x=at(n.m);if(!x)return;
+const nm=Math.max(15,Math.round(x.m*Math.exp(-e.deltaY*.01)/15)*15);if(applyM(x,nm)){touched=true;clearTimeout(x._w);x._w=setTimeout(save,500)}},{passive:false});
+
+/* ---------- sheet ---------- */
+let sh=null;
+const hhmm=m=>{m=Math.max(0,Math.min(Math.round(m),1439));return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')};
+const parseT=s=>{if(!/^\d\d:\d\d/.test(s||''))return NaN;return +s.slice(0,2)*60+ +s.slice(3,5)};
+$('sw').innerHTML=P.map((c,i)=>`<button data-c="${i}" aria-label="Color ${i+1}" style="background:${c[0]}"></button>`).join('');
+$('sw').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{sh.c=+b.dataset.c;renderSheet()}));
+function renderSheet(){$('pT').style.display=sh.tab==='t'?'flex':'none';$('pD').style.display=sh.tab==='d'?'flex':'none';
+$('tabT').className=sh.tab==='t'?'on':'';$('tabD').className=sh.tab==='d'?'on':'';
+$('sw').querySelectorAll('button').forEach(b=>{const i=+b.dataset.c;b.style.borderColor=i===sh.c?P[i][1]:'transparent'});
+const base=sh.tab==='t'?'Setting exact times locks it in place.':(sh.x&&sh.x.lk?'Changes the length. It still starts at '+fmt(sh.x.ts)+'.':'Without set times it slides into the first open gap, and later activities shift to make room.');
+$('shHint').textContent=(sh.filled?'Filled in your usual '+dur(sh.filled.avg)+' for '+sh.filled.n+' (average of '+sh.filled.cnt+'). Change it if today is different. ':'')+base}
+function openSheet(kind,x){const now=Math.round(nowMin()/5)*5;
+sh={kind,x:x||null,c:x?x.c:5,tab:kind==='add'?'t':'d',durEdited:false,filled:null};
+$('shT').textContent=kind==='add'?'New activity':'Edit '+x.n;$('inN').value=x?x.n:'';
+const s=x?x.ts:(day===todayKey()?Math.min(now,1380):540),m=x?x.m:60;
+$('inS').value=hhmm(s);$('inE').value=hhmm(Math.min(s+m,1439));$('inH').value=Math.floor(m/60);$('inM').value=m%60;
+$('shErr').textContent='';renderSheet();renderSug();$('back').style.display='flex';if(kind==='add')setTimeout(()=>{try{$('inN').focus()}catch(_){}},50)}
+function closeSheet(){$('back').style.display='none';sh=null}
+function renderSug(){const el=$('sug');if(!sh){el.style.display='none';return}const q=$('inN').value.trim().toLowerCase();
+let list=stats();if(q)list=list.filter(s=>s.n.toLowerCase().includes(q)&&s.n.toLowerCase()!==q);if(sh.kind==='edit'&&!q)list=[];list=list.slice(0,5);
+if(!list.length){el.style.display='none';el.innerHTML='';return}
+el.innerHTML=list.map((s,i)=>`<button type="button" data-i="${i}" role="option"><i style="background:${P[s.c]?P[s.c][0]:P[5][0]}"></i><span>${esc(s.n)}</span><small>avg ${dur(s.avg)} · ${s.cnt}×</small></button>`).join('');el.style.display='block';
+el.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{pickSug(list[+b.dataset.i],true)}))}
+function fillDur(s){const avg=s.avg;$('inH').value=Math.floor(avg/60);$('inM').value=avg%60;const st=parseT($('inS').value);if(!isNaN(st))$('inE').value=hhmm(Math.min(st+avg,1439));sh.filled=s;renderSheet()}
+function pickSug(s,explicit){$('inN').value=s.n;sh.c=s.c;if(explicit||!sh.durEdited)fillDur(s);else renderSheet();renderSug();$('shErr').textContent=''}
+$('tabT').addEventListener('click',()=>{sh.tab='t';renderSheet()});$('tabD').addEventListener('click',()=>{sh.tab='d';renderSheet()});
+$('shX').addEventListener('click',closeSheet);$('back').addEventListener('click',e=>{if(e.target===$('back'))closeSheet()});
+['inN','inH','inM','inS','inE'].forEach(id=>$(id).addEventListener('input',()=>{$('shErr').textContent=''}));
+['inH','inM','inE'].forEach(id=>$(id).addEventListener('input',()=>{if(sh){sh.durEdited=true;if(sh.filled){sh.filled=null;renderSheet()}}}));
+$('inS').addEventListener('input',()=>{if(sh&&sh.filled&&!sh.durEdited){const st=parseT($('inS').value);if(!isNaN(st))$('inE').value=hhmm(Math.min(st+sh.filled.avg,1439))}});
+$('inN').addEventListener('input',()=>{if(!sh)return;const q=$('inN').value.trim().toLowerCase();if(sh.kind==='add'&&q){const ex=stats().find(s=>s.n.toLowerCase()===q);if(ex&&!sh.durEdited&&sh.filled!==ex){sh.c=ex.c;fillDur(ex)}}renderSug()});
+$('inN').addEventListener('focus',()=>{if(sh)renderSug()});
+$('shSave').addEventListener('click',()=>{const err=s=>{$('shErr').textContent=s};const name=$('inN').value.trim();if(!name){err('Give it a name.');return}
+let ts=null,m;
+if(sh.tab==='d'){const h=$('inH').value===''?0:+$('inH').value,mm=$('inM').value===''?0:+$('inM').value;
+if(!Number.isFinite(h)||!Number.isFinite(mm)||h<0||mm<0){err('Enter hours and minutes as numbers.');return}m=Math.round(h*60+mm);if(m<5){err('Make it at least 5 minutes long.');return}if(m>1440){err('An activity can\u2019t be longer than 24 hours.');return}}
+else{const s=parseT($('inS').value);let e=parseT($('inE').value);if(isNaN(s)||isNaN(e)){err('Enter both a start and an end time.');return}if(e===0)e=1440;if(e===1439)e=1440;
+if(e<=s){err('The end time has to be after the start time.');return}if(e-s<5){err('Make it at least 5 minutes long.');return}ts=s;m=e-s}
+if(sh.kind==='add'){const x=mk({n:name,m,c:sh.c,lk:ts!==null,ts:ts||0});S.push(x);if(!layout()){S=S.filter(z=>z!==x);unmk(x);layout();err(ts!==null?'Those times overlap a locked activity.':'There isn\u2019t room for that in this day.');return}x.cs=x.ts;x.cm=0;sel=x}
+else{const x=sh.x;if(!S.includes(x)){closeSheet();return}const o={ts:x.ts,m:x.m,lk:x.lk};x.m=m;if(ts!==null){x.ts=ts;x.lk=true}
+if(!layout()){Object.assign(x,o);layout();err(ts!==null?'Those times overlap another locked activity.':'That doesn\u2019t fit. It would overlap a locked activity or run past midnight.');return}x.n=name;x.c=sh.c;paint(x);sel=x}
+touched=true;save();upd();setInfo();liveUI();closeSheet()});
+
+/* ---------- nav ---------- */
+function shift(n){const [y,m,d]=day.split('-').map(Number);loadDay(keyOf(new Date(y,m-1,d+n)),true)}
+$('prev').addEventListener('click',()=>shift(-1));$('next').addEventListener('click',()=>shift(1));
+$('dayLabel').parentElement.addEventListener('click',()=>{if(day!==todayKey())loadDay(todayKey(),true)});
+$('addBtn').addEventListener('click',()=>{closeMenu();openSheet('add')});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderHeader();tickTimer()}});
+
+/* ---------- logo ---------- */
+let lt=0;function drawLogo(ts){if(ts-lt>70){lt=ts;$('logo').innerHTML=roosterSVG({size:84,scale:0.86,lw:2.4,glow:false,mesh:false,ry:-0.22+0.5*Math.sin(ts/1600),rx:0.2,id:'hl'})}requestAnimationFrame(drawLogo)}
+$('logo').addEventListener('click',()=>{if(day!==todayKey())loadDay(todayKey(),true)});
+if(!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches))requestAnimationFrame(drawLogo);else $('logo').innerHTML=roosterSVG({size:84,scale:0.86,lw:2.4,glow:false,mesh:false,id:'hl'});
+/* ---------- start ---------- */
+try{const tm=JSON.parse(LS.get('rooster.timing')||'null');if(tm&&tm.id&&tm.t0&&tm.day)timing=tm}catch(_){}
+loadDay(day,true);requestAnimationFrame(step);
+(async()=>{try{if(!window.claude||!window.claude.use){return}
+const d=await window.claude.use("db"),u=await window.claude.use("user");const id=u&&u.id?await u.id():null;if(!d||!id)return;db=d;uid=id;setSync('Connecting to your account\u2026');
+try{const s=await withTO(stateRef().get());if(s.exists){const tm=s.data().timing;if(tm&&tm.id&&tm.t0&&tm.day&&!timing){timing=tm;LS.set('rooster.timing',JSON.stringify(tm))}}}catch(_){}
+await loadDay(day,false);
+try{const q=await withTO(db.collection("data/users/"+uid).limit(1000).get(),15000);q.docs.forEach(s=>{if(s.id.startsWith('day-')&&s.id.slice(4)!==day){const d=s.data();if(d&&Array.isArray(d.items))hist[s.id.slice(4)]=d.items.filter(valid)}});if(!sh)liveUI()}catch(_){}
+}catch(_){setSync('Saved on this phone')}})();
+</script>
+</body>
+</html>

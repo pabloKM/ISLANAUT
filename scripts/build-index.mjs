@@ -1,4 +1,4 @@
-// Builds the site's front page (index.html) from games/*/game.json.
+// Builds the site's front page (index.html) from games/*/game.json and apps/*/app.json.
 // No dependencies: runs on plain Node 18+.
 //   node scripts/build-index.mjs            -> writes ./index.html
 //   node scripts/build-index.mjs --out dir  -> writes dir/index.html
@@ -8,36 +8,39 @@ import { join } from "node:path";
 const root = new URL("..", import.meta.url).pathname;
 const outArg = process.argv.indexOf("--out");
 const outDir = outArg > -1 ? process.argv[outArg + 1] : root;
-const gamesDir = join(root, "games");
-
 const esc = (s = "") =>
   String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-const games = [];
-for (const slug of existsSync(gamesDir) ? readdirSync(gamesDir) : []) {
-  const dir = join(gamesDir, slug);
-  if (!statSync(dir).isDirectory() || !existsSync(join(dir, "index.html"))) continue;
-  let meta = {};
-  try { meta = JSON.parse(readFileSync(join(dir, "game.json"), "utf8")); }
-  catch { console.warn(`! ${slug}: missing or bad game.json, using defaults`); }
-  games.push({
-    slug,
-    title: meta.title || slug,
-    blurb: meta.blurb || "",
-    date: meta.date || "",
-    updated: meta.updated || meta.date || "",
-    tags: meta.tags || [],
-    controls: meta.controls || "",
-    artifact: meta.artifact || "",
-    thumb: existsSync(join(dir, "thumb.png")) ? `games/${slug}/thumb.png`
-         : existsSync(join(dir, "thumb.jpg")) ? `games/${slug}/thumb.jpg` : "",
-  });
+// Reads every <kind>/<slug>/ folder that has an index.html, with metadata from <metaFile>.
+function collect(kind, metaFile) {
+  const base = join(root, kind), items = [];
+  for (const slug of existsSync(base) ? readdirSync(base) : []) {
+    const dir = join(base, slug);
+    if (!statSync(dir).isDirectory() || !existsSync(join(dir, "index.html"))) continue;
+    let meta = {};
+    try { meta = JSON.parse(readFileSync(join(dir, metaFile), "utf8")); }
+    catch { console.warn(`! ${kind}/${slug}: missing or bad ${metaFile}, using defaults`); }
+    items.push({
+      slug, kind,
+      title: meta.title || slug,
+      blurb: meta.blurb || "",
+      date: meta.date || "",
+      updated: meta.updated || meta.date || "",
+      tags: meta.tags || [],
+      controls: meta.controls || "",
+      artifact: meta.artifact || "",
+      thumb: existsSync(join(dir, "thumb.png")) ? `${kind}/${slug}/thumb.png`
+           : existsSync(join(dir, "thumb.jpg")) ? `${kind}/${slug}/thumb.jpg` : "",
+    });
+  }
+  return items.sort((a, b) => (b.updated || "").localeCompare(a.updated || "") || a.title.localeCompare(b.title));
 }
-games.sort((a, b) => (b.updated || "").localeCompare(a.updated || "") || a.title.localeCompare(b.title));
+const games = collect("games", "game.json");
+const apps = collect("apps", "app.json");
 
 const palette = ["#ff2e88", "#ffd400", "#ff5a1f", "#9be22d", "#b79cff", "#29c5ff"];
 const card = (g, i) => `
-  <a class="card" href="games/${esc(g.slug)}/" style="--c:${palette[i % palette.length]}">
+  <a class="card" href="${esc(g.kind)}/${esc(g.slug)}/" style="--c:${palette[i % palette.length]}">
     <div class="thumb">${g.thumb ? `<img src="${esc(g.thumb)}" alt="" loading="lazy">` : `<span>${esc(g.title.slice(0, 1))}</span>`}</div>
     <div class="body">
       <h2>${esc(g.title)}</h2>
@@ -54,7 +57,7 @@ const html = `<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ISLANAUT — PabloKM × Claude games</title>
+<title>ISLANAUT — PabloKM × Claude games and apps</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@600;800&display=swap" rel="stylesheet">
 <style>
@@ -81,6 +84,7 @@ const html = `<!DOCTYPE html>
   .meta { display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:13px; font-weight:800; }
   .tag { background: var(--ink); color:#fff; border-radius: 999px; padding: 2px 9px; }
   .date { margin-left:auto; opacity:.6; }
+  .section { font-family:Bangers,Impact,sans-serif; letter-spacing:2px; font-size:40px; max-width:1100px; margin:36px auto -6px; padding:0 16px; }
   .empty { grid-column: 1/-1; text-align:center; font-weight:800; font-size:20px; padding:40px; }
   footer { text-align:center; padding: 0 0 40px; font-weight:800; opacity:.7; }
   footer a { color: inherit; }
@@ -89,15 +93,20 @@ const html = `<!DOCTYPE html>
 <body>
 <header>
   <h1>ISLANAUT</h1>
-  <p>${games.length} prototype${games.length === 1 ? "" : "s"} by PabloKM × Claude. Tap one to play.</p>
+  <p>${games.length + apps.length} prototype${games.length + apps.length === 1 ? "" : "s"} by PabloKM × Claude. Tap one to try it.</p>
 </header>
+${apps.length ? `<h2 class="section">Games</h2>` : ""}
 <main>
 ${games.length ? games.map(card).join("") : `<div class="empty">No games yet. The first one lands soon!</div>`}
 </main>
+${apps.length ? `<h2 class="section">Apps</h2>
+<main>
+${apps.map((a, i) => card(a, i + games.length)).join("")}
+</main>` : ""}
 <footer><a href="https://github.com/pabloKM/ISLANAUT">source on GitHub</a></footer>
 </body>
 </html>
 `;
 
 writeFileSync(join(outDir, "index.html"), html);
-console.log(`index.html: ${games.length} game(s)`);
+console.log(`index.html: ${games.length} game(s), ${apps.length} app(s)`);

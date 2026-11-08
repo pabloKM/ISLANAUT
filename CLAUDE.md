@@ -1,7 +1,7 @@
 # pabloKM/ISLANAUT — instructions for Claude
 
-This repo is the home for **every game PabloKM and Claude make together**. Whenever a
-session builds or changes a game, push it here without being asked. That is the standing
+This repo is the home for **every game and app PabloKM and Claude make together**. Whenever a
+session builds or changes one, push it here without being asked. That is the standing
 agreement with Pablo.
 
 ## Adding or updating a game
@@ -31,6 +31,13 @@ agreement with Pablo.
    `https://pablokm.github.io/ISLANAUT/games/<slug>/`.
 4. If the game is also a claude.ai artifact, keep the two in sync and put the artifact link
    in `game.json`.
+
+## Apps
+
+Apps (tools rather than games, e.g. ROOSTER) live in `apps/<slug>/` and follow the same rules
+as games, with `app.json` in place of `game.json` (same fields). The front page lists them in
+their own Apps section, and they deploy to `https://pablokm.github.io/ISLANAUT/apps/<slug>/`.
+For home-screen installs, give an app `manifest.webmanifest` plus `icon-180/192/512.png`.
 
 ## Notes
 - Exclude Sid Dash. It isn't Pablo's work.

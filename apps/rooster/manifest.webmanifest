@@ -1,0 +1,15 @@
+{
+  "name": "ROOSTER",
+  "short_name": "ROOSTER",
+  "description": "A time-management app that shows your day as a coil of time and learns how long things really take. A prototype by Claude (AI), made for PabloKM.",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0E1F33",
+  "theme_color": "#F6F5F1",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
