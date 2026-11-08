@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tomo — first look</title>
+<style>
+  :root { --ink:#1b1712; --paper:#f6efe1; --muted:#6d6457; --amber:#ffb23f; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.45 "Trebuchet MS",system-ui,sans-serif;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    background-image:radial-gradient(#1b171212 1.2px, transparent 1.2px); background-size:16px 16px; }
+  header { max-width:1100px; margin:0 auto; padding:22px 16px 4px; }
+  h1 { margin:0; font-size:clamp(30px,6vw,46px); letter-spacing:.5px; }
+  header p { margin:6px 0 0; color:var(--muted); font-weight:600; max-width:720px; }
+  .bar { max-width:1100px; margin:10px auto 0; padding:0 16px; display:flex; gap:10px; flex-wrap:wrap; }
+  .bar button { font:inherit; font-weight:800; border:3px solid var(--ink); background:#fff; border-radius:999px; padding:6px 14px; cursor:pointer; box-shadow:3px 3px 0 var(--ink); }
+  .bar button:active { transform:translate(2px,2px); box-shadow:1px 1px 0 var(--ink); }
+  .bar button[aria-pressed=true] { background:var(--amber); }
+  main { max-width:1100px; margin:0 auto; padding:16px; display:grid; gap:20px; grid-template-columns:repeat(auto-fit, minmax(310px,1fr)); }
+  .panel { border:3px solid var(--ink); border-radius:12px; background:#fffdf7; box-shadow:6px 6px 0 var(--ink); overflow:hidden; }
+  .view { position:relative; aspect-ratio:4/5; }
+  .view canvas { position:absolute; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+  .tag { position:absolute; left:10px; top:10px; background:var(--ink); color:#fff; font-weight:800; font-size:13px; padding:3px 9px; border-radius:999px; }
+  .hint { position:absolute; right:10px; bottom:10px; font-size:12px; font-weight:700; color:var(--muted); }
+  .cap { padding:12px 14px 14px; border-top:3px solid var(--ink); }
+  .cap h2 { margin:0 0 4px; font-size:19px; }
+  .cap p { margin:0; }
+  section.notes { max-width:1100px; margin:0 auto; padding:0 16px 30px; }
+  section.notes h2 { font-size:22px; margin:10px 0 6px; }
+  section.notes ul { margin:0; padding-left:20px; }
+  section.notes li { margin:5px 0; }
+  footer { max-width:1100px; margin:0 auto; padding:0 16px 30px; color:var(--muted); font-size:14px; font-weight:600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Tomo · first look</h1>
+  <p>Built from Pablo's sketch: a robot with a split face, half friendly and half clear acrylic over a circuit board. It has a drawer in its chest for notes, ring-shaped hands and feet that fit together like puzzle pieces.</p>
+</header>
+<div class="bar">
+  <button id="drawer" aria-pressed="false">Open the drawer</button>
+  <button id="wave">Wave</button>
+  <button id="spin" aria-pressed="true">Turn slowly (3D)</button>
+</div>
+<main>
+  <section class="panel">
+    <div class="view"><canvas id="c2"></canvas><span class="tag">2D · ink</span></div>
+    <div class="cap"><h2>2D, hand-drawn</h2><p>Wobbly ink line on paper, matching the Dear Tomorrow style. One warm accent: the glowing eye.</p></div>
+  </section>
+  <section class="panel">
+    <div class="view"><canvas id="c3"></canvas><span class="tag">3D · toon</span><span class="hint">drag to turn</span></div>
+    <div class="cap"><h2>3D, toon-shaded</h2><p>Same design built from simple shapes. The acrylic half is see-through, so you can look into the circuit board from any angle.</p></div>
+  </section>
+</main>
+<section class="notes">
+  <h2>What I added to the sketch</h2>
+  <ul>
+    <li><b>A warm eye.</b> The round eye glows amber, a small light inside the machine. It blinks.</li>
+    <li><b>The drawer is memory.</b> Notes go in, and it slides open when Tomo remembers something. Try the button.</li>
+    <li><b>A living circuit.</b> Tiny lights blink behind the acrylic, so you can see it thinking.</li>
+    <li><b>Paper and ink palette.</b> Warm cream body, ink lines, pale blue acrylic, green board. The amber eye is the only bright color.</li>
+  </ul>
+</section>
+<footer>Character design by PabloKM · first renders by Claude (AI) · name: Tomo</footer>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
+
+// ------------------------------------------------------------------
+// shared geometry: the head is a rounded "guitar pick" triangle, split
+// by a diagonal into a solid face (right) and clear acrylic (left)
+// ------------------------------------------------------------------
+function roundedPoly(corners, r, steps = 10) {
+  const n = corners.length, out = [];
+  for (let i = 0; i < n; i++) {
+    const p = corners[(i + n - 1) % n], c = corners[i], q = corners[(i + 1) % n];
+    const e1 = [c[0] - p[0], c[1] - p[1]], e2 = [q[0] - c[0], q[1] - c[1]];
+    const nrm = e => { const l = Math.hypot(...e); return [e[1] / l, -e[0] / l]; }; // outward for clockwise-in-screen order
+    const n1 = nrm(e1), n2 = nrm(e2);
+    let a1 = Math.atan2(n1[1], n1[0]), a2 = Math.atan2(n2[1], n2[0]);
+    while (a2 < a1) a2 += Math.PI * 2;
+    for (let k = 0; k <= steps; k++) { const a = a1 + (a2 - a1) * k / steps; out.push([c[0] + Math.cos(a) * r, c[1] + Math.sin(a) * r]); }
+  }
+  return out;
+}
+// head corners (y down), clockwise on screen: top, bottom-right, bottom-left
+const HEAD = roundedPoly([[0, -0.62], [0.52, 0.34], [-0.52, 0.34]], 0.36);
+const SPLIT = [[0.42, -0.86], [-0.2, 0.74]]; // diagonal from upper right to lower left
+function clip(poly, A, B, keepLeft) {
+  const side = p => ((B[0] - A[0]) * (p[1] - A[1]) - (B[1] - A[1]) * (p[0] - A[0])) * (keepLeft ? 1 : -1) >= 0;
+  const inter = (p, q) => { const x1 = p[0], y1 = p[1], x2 = q[0], y2 = q[1], x3 = A[0], y3 = A[1], x4 = B[0], y4 = B[1];
+    const d = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4), t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / d; return [x1 + t * (x2 - x1), y1 + t * (y2 - y1)]; };
+  const out = [];
+  for (let i = 0; i < poly.length; i++) { const p = poly[i], q = poly[(i + 1) % poly.length], sp = side(p), sq = side(q);
+    if (sp) out.push(p); if (sp !== sq) out.push(inter(p, q)); }
+  return out;
+}
+const GLASS = clip(HEAD, SPLIT[0], SPLIT[1], true);
+const onLine = p => Math.abs((SPLIT[1][0] - SPLIT[0][0]) * (p[1] - SPLIT[0][1]) - (SPLIT[1][1] - SPLIT[0][1]) * (p[0] - SPLIT[0][0])) < 1e-6;
+const SEAM = GLASS.filter(onLine);   // left: clear acrylic
+const FACE = clip(HEAD, SPLIT[0], SPLIT[1], false);   // right: solid face
+const EYE = [0.27, -0.06], MOUTH = [0.22, 0.24];
+
+const state = { drawer: 0, drawerTarget: 0, wave: 0, blink: 0, nextBlink: 2, spin: true };
+const btnD = document.getElementById('drawer'), btnW = document.getElementById('wave'), btnS = document.getElementById('spin');
+btnD.onclick = () => { state.drawerTarget = state.drawerTarget ? 0 : 1; btnD.setAttribute('aria-pressed', !!state.drawerTarget); btnD.textContent = state.drawerTarget ? 'Close the drawer' : 'Open the drawer'; };
+btnW.onclick = () => { state.wave = 2.2; };
+btnS.onclick = () => { state.spin = !state.spin; btnS.setAttribute('aria-pressed', state.spin); };
+
+// ------------------------------------------------------------------
+// 2D ink
+// ------------------------------------------------------------------
+const c2 = document.getElementById('c2'), g = c2.getContext('2d');
+let W2, H2;
+function size2() { const r = c2.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1); W2 = r.width; H2 = r.height; c2.width = W2 * d; c2.height = H2 * d; g.setTransform(d, 0, 0, d, 0, 0); }
+const hash = n => { const s = Math.sin(n * 127.1) * 43758.5453; return s - Math.floor(s); };
+let boil = 0; const INK = '#1b1712';
+function inkPoly(pts, close, fill, lw, amp = 1.1) {
+  g.beginPath(); pts.forEach(([x, y], i) => { const px = x + (hash(i * 3.7 + x * .1 + boil) - .5) * amp, py = y + (hash(i * 5.1 + y * .1 + boil * 1.3) - .5) * amp; i ? g.lineTo(px, py) : g.moveTo(px, py); });
+  if (close) g.closePath(); if (fill) { g.fillStyle = fill; g.fill(); } if (lw) { g.lineWidth = lw; g.strokeStyle = INK; g.lineJoin = 'round'; g.lineCap = 'round'; g.stroke(); }
+}
+const rrect = (x, y, w, h, r, n = 4) => roundedPoly([[x + r, y + r], [x + w - r, y + r], [x + w - r, y + h - r], [x + r, y + h - r]], r, n);
+function draw2d(t) {
+  if (!W2) size2();
+  boil = Math.floor(t * 5);
+  g.clearRect(0, 0, W2, H2);
+  g.fillStyle = 'rgba(27,23,18,.05)'; for (let y = 10; y < H2; y += 16) for (let x = 10; x < W2; x += 16) { g.beginPath(); g.arc(x, y, 1.1, 0, 7); g.fill(); }
+  const S = Math.min(W2 / 3.2, H2 / 4.1), cx = W2 / 2, base = H2 * .9;
+  const bob = Math.sin(t * 2) * 2;
+  const X = x => cx + x * S, Y = y => base + (y - 1.62) * S;
+  const P = pts => pts.map(([x, y]) => [X(x), Y(y)]);
+  const lw = Math.max(2, S * .028);
+  // ground shadow
+  g.fillStyle = 'rgba(27,23,18,.12)'; g.beginPath(); g.ellipse(cx, Y(1.62), S * .85, S * .07, 0, 0, 7); g.fill();
+  // feet (interlocking)
+  inkPoly(P([[-0.7, 1.45], [0.04, 1.45], [0.04, 1.5], [0.14, 1.5], [0.14, 1.56], [0.04, 1.56], [0.04, 1.62], [-0.7, 1.62]]), true, '#efe6d2', lw);
+  inkPoly(P([[0.08, 1.48], [0.72, 1.48], [0.72, 1.62], [0.18, 1.62], [0.18, 1.58], [0.1, 1.58], [0.1, 1.52], [0.08, 1.52]]), true, '#efe6d2', lw);
+  // legs
+  for (const sx of [-1, 1]) inkPoly(P(rrect(sx > 0 ? 0.08 : -0.52, 1.08, 0.44, 0.38, .04)), true, '#efe6d2', lw);
+  // body (bobs a little)
+  g.save(); g.translate(0, bob);
+  const wave = state.wave > 0 ? Math.sin((2.2 - state.wave) * 9) * .5 : 0;
+  // arms
+  for (const sx of [-1, 1]) {
+    g.save(); const shx = X(sx * .62), shy = Y(.02); g.translate(shx, shy);
+    if (sx > 0 && state.wave > 0) g.rotate(-(2.3 + wave * .6));
+    const ox = sx * S * .02;
+    inkPoly(rrect(sx > 0 ? -.06 * S : -.34 * S, -.08 * S, .4 * S, .78 * S, .14 * S, 6).map(([x, y]) => [x + ox, y]), true, '#efe6d2', lw);
+    g.beginPath(); g.moveTo(sx > 0 ? -.06 * S : .06 * S, .3 * S); g.lineTo(sx > 0 ? .34 * S : -.34 * S, .3 * S); g.lineWidth = lw * .7; g.strokeStyle = INK; g.stroke();
+    // C-shaped gripper hand
+    const hx = sx * .14 * S, hy = .92 * S;
+    g.beginPath(); g.arc(hx, hy, .17 * S, sx > 0 ? -.25 * Math.PI : 1.25 * Math.PI, sx > 0 ? 1.25 * Math.PI : 2.75 * Math.PI, sx < 0); g.lineWidth = .12 * S; g.strokeStyle = INK; g.stroke();
+    g.lineWidth = .07 * S; g.strokeStyle = '#efe6d2'; g.stroke();
+    g.beginPath(); g.arc(hx, hy, .07 * S, 0, 7); g.fillStyle = INK; g.fill();
+    g.restore();
+  }
+  // torso
+  inkPoly(P(rrect(-0.55, -0.08, 1.1, 1.16, .16, 6)), true, '#f3ecdc', lw);
+  // drawer
+  const dOut = state.drawer * .14;
+  if (state.drawer > .02) { // the note peeking out of the open drawer
+    g.save(); g.translate(X(.06), Y(.32 - state.drawer * .16)); g.rotate(-.12);
+    inkPoly(rrect(-S * .18, -S * .18, S * .36, S * .3, 3, 2), true, '#fffaf0', lw * .8, .6);
+    g.strokeStyle = INK; g.lineWidth = lw * .7; g.beginPath(); g.moveTo(-S * .1, -S * .05); g.bezierCurveTo(-S * .05, -S * .12, 0, S * .02, S * .05, -S * .05); g.bezierCurveTo(S * .08, -S * .1, S * .1, -S * .03, S * .12, -S * .06); g.stroke();
+    g.restore();
+  }
+  inkPoly(P(rrect(-0.3 - dOut * .1, 0.26 + dOut * .1, 0.6 + dOut * .2, 0.4 + dOut * .12, .05)), true, state.drawer > .02 ? '#e6dcc4' : '#f6f0e2', lw);
+  inkPoly(P(rrect(-0.24 - dOut * .1, 0.32 + dOut * .1, 0.48 + dOut * .2, 0.28 + dOut * .12, .04)), true, null, lw * .7);
+  inkPoly(P([[-0.06, 0.37 + dOut * .1], [0.06, 0.37 + dOut * .1]]), false, null, lw * 1.6);
+  // neck ring
+  inkPoly(P(rrect(-0.3, -0.2, 0.6, 0.14, .03)), true, '#e8dfca', lw);
+  // head
+  const hx0 = 0, hy0 = -0.84, HS = 0.86, tilt = Math.sin(t * .9) * .04;
+  g.save(); g.translate(X(hx0), Y(hy0)); g.rotate(tilt); g.translate(-X(hx0), -Y(hy0));
+  const H = pts => P(pts.map(([x, y]) => [hx0 + x * HS, hy0 + y * HS]));
+  inkPoly(H(GLASS), true, 'rgba(160,210,235,.35)', 0);
+  // circuit board behind the acrylic
+  g.save(); g.beginPath(); H(GLASS).forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); g.clip();
+  inkPoly(H(rrect(-0.5, -0.32, 0.62, 0.66, .03)), true, '#3f9e64', lw * .8);
+  g.strokeStyle = '#d9b44a'; g.lineWidth = lw * .55;
+  [[[-0.44, -0.2], [-0.2, -0.2], [-0.2, -0.04]], [[-0.44, 0.06], [-0.3, 0.06], [-0.3, 0.22]], [[-0.1, -0.26], [-0.1, 0.1], [0.06, 0.1]]].forEach(tr => { g.beginPath(); H(tr).forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke(); });
+  inkPoly(H(rrect(-0.36, -0.12, 0.14, 0.24, .02)), true, '#2b2f33', lw * .7);
+  inkPoly(H(rrect(-0.14, -0.3, 0.12, 0.16, .02)), true, '#2b2f33', lw * .7);
+  [[-0.42, -0.26], [-0.16, 0.2], [-0.04, -0.12]].forEach(([x, y], i) => { const on = Math.sin(t * (3 + i) + i * 2) > .2; const [px, py] = H([[x, y]])[0];
+    g.beginPath(); g.arc(px, py, S * .022, 0, 7); g.fillStyle = on ? '#ffd56a' : '#7a6a3a'; g.fill(); });
+  g.restore();
+  inkPoly(H(FACE), true, '#f3ecdc', 0);
+  inkPoly(H(HEAD), true, null, lw * 1.1);
+  inkPoly(H(SEAM), false, null, lw);
+  // acrylic glare
+  g.strokeStyle = 'rgba(255,255,255,.9)'; g.lineWidth = lw * 1.2; g.beginPath(); const gl = H([[-0.18, -0.46], [-0.36, -0.2]]); g.moveTo(...gl[0]); g.quadraticCurveTo(H([[-0.34, -0.42]])[0][0], H([[-0.34, -0.42]])[0][1], ...gl[1]); g.stroke();
+  // eye: warm glow + blink
+  const [ex, ey] = H([EYE])[0], er = S * .16 * HS, open = 1 - state.blink;
+  const glow = g.createRadialGradient(ex, ey, 0, ex, ey, er * 2.4); glow.addColorStop(0, 'rgba(255,190,80,.55)'); glow.addColorStop(1, 'rgba(255,190,80,0)');
+  g.fillStyle = glow; g.beginPath(); g.arc(ex, ey, er * 2.4, 0, 7); g.fill();
+  g.save(); g.translate(ex, ey); g.scale(1, Math.max(.08, open));
+  g.beginPath(); g.arc(0, 0, er, 0, 7); g.fillStyle = '#fff8e6'; g.fill(); g.lineWidth = lw; g.strokeStyle = INK; g.stroke();
+  g.beginPath(); g.arc(0, 0, er * .62, 0, 7); g.fillStyle = '#ffb23f'; g.fill(); g.lineWidth = lw * .8; g.stroke();
+  g.beginPath(); g.arc(-er * .22, -er * .22, er * .16, 0, 7); g.fillStyle = '#fff'; g.fill();
+  g.restore();
+  // mouth: a little slot
+  inkPoly(H(rrect(MOUTH[0] - .13, MOUTH[1] - .02, .26, .22, .015)), true, '#f3ecdc', lw * .9);
+  inkPoly(H(rrect(MOUTH[0] - .13, MOUTH[1] - .02, .26, .08, .015)), true, INK, 0);
+  g.restore();
+  g.restore();
+}
+
+// ------------------------------------------------------------------
+// 3D toon
+// ------------------------------------------------------------------
+const c3 = document.getElementById('c3');
+const renderer = new THREE.WebGLRenderer({ canvas: c3, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1));
+const effect = new OutlineEffect(renderer, { defaultThickness: .011, defaultColor: [.1, .09, .07] });
+const scene = new THREE.Scene();
+const cam = new THREE.PerspectiveCamera(30, .8, .1, 100); cam.position.set(0, 3.0, 12.5); cam.lookAt(0, 2.35, 0);
+scene.add(new THREE.AmbientLight(0xffffff, 1.3)); const sun = new THREE.DirectionalLight(0xffffff, 2.2); sun.position.set(3, 5, 6); scene.add(sun);
+const ramp = new THREE.DataTexture(new Uint8Array([120, 200, 255]), 3, 1, THREE.RedFormat); ramp.minFilter = ramp.magFilter = THREE.NearestFilter; ramp.needsUpdate = true;
+const toon = (c, o = {}) => { const m = new THREE.MeshToonMaterial({ color: c, gradientMap: ramp, ...o }); return m; };
+const noOutline = m => { m.userData.outlineParameters = { visible: false }; return m; };
+const CREAM = 0xf3ecdc, CREAM2 = 0xe6dcc4;
+
+function shapeFrom(pts) { const s = new THREE.Shape(); pts.forEach(([x, y], i) => i ? s.lineTo(x, -y) : s.moveTo(x, -y)); s.closePath(); return s; }
+function slab(pts, depth, mat, bevel = .04) {
+  const geo = new THREE.ExtrudeGeometry(shapeFrom(pts), { depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 3, curveSegments: 6 });
+  geo.translate(0, 0, -depth / 2); return new THREE.Mesh(geo, mat);
+}
+const rbox = (w, h, d, r, mat) => slab(rrect(-w / 2, -h / 2, w, h, r, 5), d, mat, Math.min(.05, r * .5));
+
+const tomo = new THREE.Group(); scene.add(tomo);
+const bodyG = new THREE.Group(); tomo.add(bodyG);
+// feet + legs
+// feet: footprints seen from above, with a tab on the left foot that fits a notch in the right
+const footL = slab([[-1.0, -0.42], [0.0, -0.42], [0.0, -0.1], [0.14, -0.1], [0.14, 0.1], [0.0, 0.1], [0.0, 0.42], [-1.0, 0.42]], .16, toon(CREAM2), .03);
+footL.rotation.x = -Math.PI / 2; footL.position.set(-.02, .11, .1); tomo.add(footL);
+const footR = slab([[0.04, -0.42], [1.0, -0.42], [1.0, 0.42], [0.04, 0.42], [0.04, 0.12], [0.18, 0.12], [0.18, -0.12], [0.04, -0.12]], .16, toon(CREAM2), .03);
+footR.rotation.x = -Math.PI / 2; footR.position.set(0, .11, .1); tomo.add(footR);
+for (const sx of [-1, 1]) { const leg = rbox(.62, .6, .62, .06, toon(CREAM2)); leg.position.set(sx * .42, .55, 0); tomo.add(leg); }
+// torso + drawer
+const torso = rbox(1.55, 1.6, 1.15, .22, toon(CREAM)); torso.position.set(0, 1.62, 0); bodyG.add(torso);
+const drawer = new THREE.Group(); drawer.position.set(0, 1.42, .6); bodyG.add(drawer);
+const front = rbox(.86, .58, .12, .06, toon(0xf6f0e2)); drawer.add(front);
+const box = new THREE.Mesh(new THREE.BoxGeometry(.78, .5, .9), toon(0xd9cfb6)); box.position.z = -.48; drawer.add(box);
+const handle = rbox(.22, .06, .06, .02, toon(0x2b2f33)); handle.position.set(0, .16, .08); drawer.add(handle);
+const noteTex = (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 128; const x = cv.getContext('2d'); x.fillStyle = '#fffaf0'; x.fillRect(0, 0, 128, 128);
+  x.strokeStyle = INK; x.lineWidth = 6; x.strokeRect(3, 3, 122, 122); x.lineWidth = 7; x.lineCap = 'round'; x.beginPath(); x.moveTo(22, 70); x.bezierCurveTo(40, 40, 55, 95, 66, 64); x.bezierCurveTo(78, 36, 92, 92, 106, 62); x.stroke();
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+const note = new THREE.Mesh(new THREE.PlaneGeometry(.42, .42), noOutline(new THREE.MeshBasicMaterial({ map: noteTex, side: THREE.DoubleSide })));
+note.position.set(0, .05, -.3); note.rotation.x = -.25; drawer.add(note);
+// neck ring
+const neck = new THREE.Mesh(new THREE.CylinderGeometry(.42, .46, .2, 28), toon(0xe8dfca)); neck.position.set(0, 2.5, 0); bodyG.add(neck);
+// arms with C-shaped grippers
+const arms = [];
+for (const sx of [-1, 1]) {
+  const sh = new THREE.Group(); sh.position.set(sx * 1.0, 2.2, 0); bodyG.add(sh);
+  const upper = rbox(.5, 1.05, .62, .2, toon(CREAM)); upper.position.set(sx * .05, -.45, 0); sh.add(upper);
+  const band = new THREE.Mesh(new THREE.BoxGeometry(.54, .05, .66), toon(0x2b2f33)); band.position.set(sx * .05, -.5, 0); sh.add(band);
+  const grip = new THREE.Mesh(new THREE.TorusGeometry(.2, .09, 10, 24, Math.PI * 1.55), toon(CREAM));
+  grip.position.set(sx * .08, -1.15, .08); grip.rotation.set(0, sx > 0 ? 0 : Math.PI, Math.PI * .72); sh.add(grip);
+  const palm = new THREE.Mesh(new THREE.SphereGeometry(.09, 12, 10), toon(0x2b2f33)); palm.position.set(sx * .08, -1.15, .08); sh.add(palm);
+  arms.push(sh);
+}
+// head
+const head = new THREE.Group(); head.position.set(0, 3.45, 0); bodyG.add(head);
+const HS3 = 1.25;
+const faceMesh = slab(FACE.map(([x, y]) => [x * HS3, y * HS3]), .7, toon(CREAM), .06); head.add(faceMesh);
+const glassMat = noOutline(new THREE.MeshPhysicalMaterial({ color: 0xbfe3f2, transparent: true, opacity: .32, roughness: .05, metalness: 0, depthWrite: false }));
+const glass = slab(GLASS.map(([x, y]) => [x * HS3, y * HS3]), .7, glassMat, .06); head.add(glass);
+const glassEdges = new THREE.LineSegments(new THREE.EdgesGeometry(glass.geometry, 30), new THREE.LineBasicMaterial({ color: 0x1b1712 })); head.add(glassEdges);
+// circuit board inside the acrylic
+const boardG = new THREE.Group(); boardG.position.set(-.3, 0, -.02); head.add(boardG);
+const pcb = new THREE.Mesh(new THREE.BoxGeometry(.7, .8, .06), toon(0x3f9e64)); pcb.position.set(-.05, .02, 0); boardG.add(pcb);
+const chip1 = new THREE.Mesh(new THREE.BoxGeometry(.18, .3, .08), toon(0x2b2f33)); chip1.position.set(-.2, .0, .06); boardG.add(chip1);
+const chip2 = new THREE.Mesh(new THREE.BoxGeometry(.16, .18, .08), toon(0x2b2f33)); chip2.position.set(.08, .22, .06); boardG.add(chip2);
+const traceMat = noOutline(new THREE.MeshBasicMaterial({ color: 0xd9b44a }));
+[[-.3, .25, .3, .03], [.1, -.05, .03, .4], [-.05, -.25, .35, .03]].forEach(([x, y, w, h]) => { const tr = new THREE.Mesh(new THREE.BoxGeometry(w, h, .02), traceMat); tr.position.set(x, y, .04); boardG.add(tr); });
+const leds = [[-.32, .3], [.12, -.22], [-.02, .1]].map(([x, y]) => { const m = new THREE.Mesh(new THREE.SphereGeometry(.035, 10, 8), noOutline(new THREE.MeshBasicMaterial({ color: 0xffd56a }))); m.position.set(x, y, .06); boardG.add(m); return m; });
+// eye and mouth on the solid face
+const eyeG = new THREE.Group(); eyeG.position.set(EYE[0] * HS3, -EYE[1] * HS3, .4); head.add(eyeG);
+const eyeWhite = new THREE.Mesh(new THREE.CylinderGeometry(.24, .24, .06, 28).rotateX(Math.PI / 2), toon(0xfff8e6)); eyeG.add(eyeWhite);
+const iris = new THREE.Mesh(new THREE.CylinderGeometry(.15, .15, .07, 24).rotateX(Math.PI / 2), noOutline(new THREE.MeshBasicMaterial({ color: 0xffb23f }))); iris.position.z = .02; eyeG.add(iris);
+const shine = new THREE.Mesh(new THREE.CircleGeometry(.035, 12), noOutline(new THREE.MeshBasicMaterial({ color: 0xffffff }))); shine.position.set(-.04, .04, .06); eyeG.add(shine);
+const eyeLight = new THREE.PointLight(0xffb23f, 1.4, 2.2); eyeLight.position.set(0, 0, .3); eyeG.add(eyeLight);
+const mouth = rbox(.32, .26, .08, .02, toon(CREAM)); mouth.position.set(MOUTH[0] * HS3, -(MOUTH[1] + .08) * HS3, .39); head.add(mouth);
+const mouthTop = new THREE.Mesh(new THREE.BoxGeometry(.33, .09, .09), toon(0x1b1712)); mouthTop.position.set(MOUTH[0] * HS3, -(MOUTH[1] + .015) * HS3, .4); head.add(mouthTop);
+
+// drag to turn
+let yaw = -.35, dragging = false, lx = 0, idle = 0;
+c3.addEventListener('pointerdown', e => { dragging = true; lx = e.clientX; c3.setPointerCapture(e.pointerId); });
+c3.addEventListener('pointermove', e => { if (!dragging) return; yaw += (e.clientX - lx) * .01; lx = e.clientX; idle = 0; });
+c3.addEventListener('pointerup', () => dragging = false);
+function size3() { const r = c3.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); cam.aspect = r.width / r.height; cam.updateProjectionMatrix(); }
+size3(); addEventListener('resize', () => { size2(); size3(); });
+
+function draw3d(t, dt) {
+  idle += dt; if (state.spin && !dragging && idle > 1.5) yaw += dt * .35;
+  tomo.rotation.y = yaw; bodyG.position.y = Math.sin(t * 2) * .03; head.rotation.z = Math.sin(t * .9) * .04;
+  drawer.position.z = .6 + state.drawer * .45; note.position.y = .05 + state.drawer * .32; note.visible = state.drawer > .05;
+  eyeG.scale.y = Math.max(.08, 1 - state.blink);
+  leds.forEach((m, i) => m.material.color.set(Math.sin(t * (3 + i) + i * 2) > .2 ? 0xffd56a : 0x7a6a3a));
+  const w = state.wave > 0 ? Math.sin((2.2 - state.wave) * 9) * .35 : 0;
+  arms[1].rotation.z = state.wave > 0 ? 2.4 + w : arms[1].rotation.z * .85;
+  effect.render(scene, cam);
+}
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000), t = now / 1000; last = now;
+  state.drawer += (state.drawerTarget - state.drawer) * Math.min(1, dt * 6);
+  if (state.wave > 0) state.wave = Math.max(0, state.wave - dt);
+  state.nextBlink -= dt; if (state.nextBlink < 0) { state.blink = 1; state.nextBlink = 2.5 + Math.random() * 3; }
+  state.blink = Math.max(0, state.blink - dt * 7);
+  draw2d(t); draw3d(t, dt);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
