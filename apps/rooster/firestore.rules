@@ -8,6 +8,7 @@ rules_version = '2';
 // users/{uid}/state/{doc}        private app state (running timer)
 // invites/{code}                 a 6-character code someone can use to connect with you
 // requests/{id}                  spot requests between friends
+// pokes/{id}                     check-ins: "what are you doing?"
 
 service cloud.firestore {
   match /databases/{db}/documents {
@@ -82,6 +83,30 @@ service cloud.firestore {
       );
 
       // The asker can cancel; either side can clear it away.
+      allow delete: if signedIn() && (resource.data.from == me() || resource.data.to == me());
+    }
+
+    // Check-ins ("what are you doing?") between friends.
+    match /pokes/{id} {
+      allow read: if signedIn() && (resource.data.from == me() || resource.data.to == me());
+
+      allow create: if signedIn()
+        && request.resource.data.from == me()
+        && request.resource.data.status == 'pending'
+        && sharesWith(request.resource.data.to);
+
+      allow update: if signedIn() && (
+        // The person asked answers once, with a short activity name.
+        (resource.data.to == me() && resource.data.status == 'pending'
+          && request.resource.data.status == 'answered'
+          && request.resource.data.answer is string && request.resource.data.answer.size() <= 40
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'answer', 'answeredAt', 'updated']))
+        ||
+        // The asker can only mark the answer as seen.
+        (resource.data.from == me()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fromSeen', 'updated']))
+      );
+
       allow delete: if signedIn() && (resource.data.from == me() || resource.data.to == me());
     }
   }

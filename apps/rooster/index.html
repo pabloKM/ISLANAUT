@@ -50,6 +50,12 @@ body.vf .banner{display:flex}
 .sheet{max-height:88vh;overflow-y:auto}
 .code{font-size:30px;font-weight:800;letter-spacing:6px;text-align:center;padding:10px;border:1px dashed var(--line2);border-radius:12px;margin:8px 0}
 .muted{color:var(--muted);font-size:14px;margin:6px 0}
+.dialw{display:flex;align-items:center;gap:14px;margin-top:12px}
+#dial{width:150px;height:150px;flex:none;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+#dial:focus-visible{outline:2px solid var(--accent);border-radius:75px}
+.poke{height:26px;border-radius:13px;border:0.5px solid var(--line2);background:var(--panel);color:var(--text);font-size:12px;font-weight:600;padding:0 10px;margin-left:8px;cursor:pointer;vertical-align:middle}
+.cap{height:auto;min-height:18px;line-height:26px}
+.chips.cwrap{flex-wrap:wrap;overflow:visible}
 #live{height:76px;flex:none;padding:8px 4px 0;font-size:14px;color:var(--text2);line-height:1.5;overflow:hidden}
 .chips{display:flex;gap:6px;overflow-x:auto;white-space:nowrap;padding-bottom:6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}.chips::-webkit-scrollbar{display:none}
 .chip{flex:none;display:inline-flex;align-items:center;height:36px;font-size:14px;padding:0 14px;border-radius:999px;border:0.5px solid var(--line2);color:var(--text);background:var(--panel);cursor:pointer}
@@ -89,7 +95,7 @@ input[type=time]{flex:1}
 <button class="add" id="addBtn" aria-label="Add an activity">+ Add</button>
 </header>
 <div class="sub"><span id="info">Tap an activity to see its times</span><span id="used"></span></div>
-<div class="banner" id="banner"><span id="bannerTxt" style="flex:1"></span><button class="btn2" id="backMine">Back to mine</button></div>
+<div class="banner" id="banner"><span id="bannerTxt" style="flex:1"></span><button class="btn2" id="bannerPoke">Check in</button><button class="btn2" id="backMine">Back to mine</button></div>
 <div class="stage">
 <div class="col" id="mcol"><div class="cap" id="mcap">You</div>
 <svg id="box" viewBox="0 0 300 540" preserveAspectRatio="xMidYMid meet" aria-label="Your day as a coil of activities">
@@ -116,6 +122,7 @@ input[type=time]{flex:1}
 <div class="tabs" id="tabs"><button id="tabT">Start and end</button><button id="tabD">Just a length</button></div>
 <div id="pT" class="row"><input id="inS" type="time" step="300" aria-label="Start time"><span style="color:var(--text2)">to</span><input id="inE" type="time" step="300" aria-label="End time"></div>
 <div id="pD" class="row" style="display:none"><input id="inH" type="number" inputmode="numeric" min="0" max="24" aria-label="Hours" style="width:80px"><span style="color:var(--text2)">h</span><input id="inM" type="number" inputmode="numeric" min="0" max="59" step="5" aria-label="Minutes" style="width:80px"><span style="color:var(--text2)">m</span></div>
+<div class="dialw"><svg id="dial" viewBox="0 0 200 200" role="slider" tabindex="0" aria-label="Length. Spin to change it" aria-valuemin="5" aria-valuemax="1440"></svg><div class="hint" style="margin:0">Spin the dial to set the length. Go slow for 5-minute steps, spin fast to jump by hours.</div></div>
 <div class="hint" id="shHint"></div>
 <div class="err" id="shErr"></div>
 <button class="save" id="shSave">Save</button>
@@ -343,7 +350,7 @@ const ts=Math.floor(nowMin());const x=mk({n:'New activity',m:1,c:5,lk:true,ts});
 if(!layout()){S=S.filter(z=>z!==x);unmk(x);layout();const at=S.find(s=>s.lk&&s.ts<=ts&&s.ts+s.m>ts);msg(at?at.n+' is locked at this time. Unlock or shorten it first.':'There\u2019s no room at this time.');return}
 x.cs=x.ts;x.cm=0;timing={id:x.id,t0:Date.now(),start:ts,day,n:x.n};sel=x;touched=true;buzz();save();saveTiming();upd();setInfo();liveUI();drawFab()}
 function stopTimer(note){const x=liveItem();if(x){x.m=Math.max(1,Math.min(1440-x.ts,Math.round((Date.now()-timing.t0)/60000)));if(!layout()){x.m=Math.max(1,x.m-1);layout()}}
-timing=null;touched=true;save();saveTiming();upd();setInfo();liveUI();drawFab();if(note)msg(note);else if(x)msg('Logged '+x.n+' for '+dur(x.m)+'.')}
+timing=null;touched=true;save();saveTiming();upd();setInfo();liveUI();drawFab();if(note&&note.trim())msg(note);else if(x&&!note)msg('Logged '+x.n+' for '+dur(x.m)+'.')}
 function tickTimer(){if(!timing)return;drawFab();if(timing.day!==day)return;const x=liveItem();if(!x){timing=null;saveTiming();liveUI();drawFab();return}
 let m=Math.max(1,Math.round((Date.now()-timing.t0)/60000));if(x.ts+m>=1440){x.m=1440-x.ts;layout();stopTimer('Midnight: timer stopped.');return}
 if(m!==x.m){const old=x.m;x.m=m;if(!layout()){x.m=old;layout();const nx=S.filter(s=>s.lk&&s!==x&&s.ts>=x.ts).sort((a,b)=>a.ts-b.ts)[0];stopTimer('Timer stopped where '+(nx?nx.n:'the next activity')+' begins.');return}upd();if(sel===x)setInfo();if(m%5===0)save()}}
@@ -435,6 +442,7 @@ $('pT').style.display=sh.tab==='t'?'flex':'none';$('pD').style.display=sh.tab===
 $('tabT').className=sh.tab==='t'?'on':'';$('tabD').className=sh.tab==='d'?'on':'';
 $('sw').querySelectorAll('button').forEach(b=>{const i=+b.dataset.c;b.style.borderColor=i===sh.c?P[i][1]:'transparent'});
 const base=rq?'Open on '+sh.req.f.name+'\u2019s day from '+fmt(sh.req.g0)+' to '+fmt(sh.req.g1)+'. They\u2019ll see it in your color and can accept or decline.':sh.tab==='t'?'Setting exact times locks it in place.':(sh.x&&sh.x.lk?'Changes the length. It still starts at '+fmt(sh.x.ts)+'.':'Without set times it slides into the first open gap, and later activities shift to make room.');
+dialFromInputs();
 $('shHint').textContent=(sh.filled?'Filled in your usual '+dur(sh.filled.avg)+' for '+sh.filled.n+' (average of '+sh.filled.cnt+'). Change it if today is different. ':'')+base}
 function openSheet(kind,x,ctx){const now=Math.round(nowMin()/5)*5;
 sh={kind,x:x||null,c:x?x.c:(kind==='req'&&me?me.c:5),tab:kind==='edit'?'d':'t',durEdited:false,filled:null,req:ctx||null};
@@ -449,10 +457,32 @@ if(!list.length){el.style.display='none';el.innerHTML='';return}
 el.innerHTML=list.map((s,i)=>`<button type="button" data-i="${i}" role="option"><i style="background:${P[s.c]?P[s.c][0]:P[5][0]}"></i><span>${esc(s.n)}</span><small>avg ${dur(s.avg)} · ${s.cnt}×</small></button>`).join('');el.style.display='block';
 el.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{pickSug(list[+b.dataset.i],true)}))}
 function fillDur(s){const avg=s.avg;$('inH').value=Math.floor(avg/60);$('inM').value=avg%60;const st=parseT($('inS').value);if(!isNaN(st))$('inE').value=hhmm(Math.min(st+avg,1439));sh.filled=s;renderSheet()}
+/* ---------- rotary dial: one turn = 2 hours; faster spins move further ---------- */
+const dial={f:60,ang:null,t:0,lastH:-1};
+function dialMax(){if(!sh)return 1440;const s=parseT($('inS').value),cap=sh.kind==='req'?sh.req.g1:1440;return(sh.tab==='t'&&!isNaN(s))?Math.max(5,cap-s):1440}
+function dialFromInputs(){if(!sh)return;let m;if(sh.tab==='d')m=(+$('inH').value||0)*60+(+$('inM').value||0);else{const s=parseT($('inS').value);let e=parseT($('inE').value);if(e===0||e===1439)e=1440;m=(isNaN(s)||isNaN(e)||e<=s)?60:e-s}dial.f=Math.max(5,m);drawDial()}
+function drawDial(){const m=Math.max(5,Math.round(dial.f/5)*5),a=((m%120)/120)*360,R=74;const pol=(d,r)=>[(100+r*Math.sin(d*Math.PI/180)).toFixed(1),(100-r*Math.cos(d*Math.PI/180)).toFixed(1)];
+let h=`<circle cx="100" cy="100" r="${R}" fill="none" stroke-width="24" style="stroke:var(--track)"/>`;
+if(a>0.5){const [x1,y1]=pol(0,R),[x2,y2]=pol(a,R);h+=`<path d="M${x1} ${y1} A${R} ${R} 0 ${a>180?1:0} 1 ${x2} ${y2}" fill="none" stroke="#D85A30" stroke-width="24" stroke-linecap="round"/>`}
+for(let i=0;i<24;i++){const d=i*15,L=i%6===0?16:8,[x1,y1]=pol(d,R+L/2),[x2,y2]=pol(d,R-L/2);h+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke-width="${i%6===0?2.5:1.5}" style="stroke:var(--panel)"/>`}
+const turns=Math.floor(m/120);for(let i=0;i<Math.min(turns,12);i++){const [x,y]=pol(i*30,R+18);h+=`<circle cx="${x}" cy="${y}" r="3" fill="#D85A30"/>`}
+const [kx,ky]=pol(a,R);h+=`<circle cx="${kx}" cy="${ky}" r="15" fill="#ffffff" stroke="#2C2C2A" stroke-width="2"/>`;
+h+=`<text x="100" y="98" text-anchor="middle" dominant-baseline="central" font-size="${m>=600?24:28}" font-weight="700" style="fill:var(--text)">${dur(m)}</text><text x="100" y="124" text-anchor="middle" font-size="11" style="fill:var(--muted)">${turns?'each dot = 2h':'spin'}</text>`;
+const el=$('dial');el.innerHTML=h;el.setAttribute('aria-valuenow',m);el.setAttribute('aria-valuetext',dur(m))}
+function applyDial(){if(!sh)return;const m=Math.max(5,Math.min(dialMax(),Math.round(dial.f/5)*5));$('inH').value=Math.floor(m/60);$('inM').value=m%60;
+const s=parseT($('inS').value);if(!isNaN(s))$('inE').value=hhmm(Math.min(s+m,1439));sh.durEdited=true;$('shErr').textContent='';if(sh.filled){sh.filled=null;renderSheet()}
+const hr=Math.floor(m/60);if(hr!==dial.lastH){if(dial.lastH>=0)buzz();dial.lastH=hr}drawDial()}
+function dialAng(e){const r=$('dial').getBoundingClientRect();return Math.atan2(e.clientX-(r.left+r.width/2),-(e.clientY-(r.top+r.height/2)))*180/Math.PI}
+$('dial').addEventListener('pointerdown',e=>{try{$('dial').setPointerCapture(e.pointerId)}catch(_){}dial.ang=dialAng(e);dial.t=performance.now();dial.lastH=Math.floor(dial.f/60);e.preventDefault()});
+$('dial').addEventListener('pointermove',e=>{if(dial.ang===null)return;const a=dialAng(e);let d=a-dial.ang;if(d>180)d-=360;if(d<-180)d+=360;
+const now=performance.now(),dt=Math.max(8,now-dial.t),v=Math.abs(d)/dt,gain=1+Math.min(4,Math.max(0,v-0.3)*3);
+dial.f=Math.max(5,Math.min(dialMax(),dial.f+d*(120/360)*gain));dial.ang=a;dial.t=now;applyDial()});
+['pointerup','pointercancel','lostpointercapture'].forEach(ev=>$('dial').addEventListener(ev,()=>{dial.ang=null}));
+$('dial').addEventListener('keydown',e=>{const k=e.key;const st=k==='ArrowUp'||k==='ArrowRight'?5:k==='ArrowDown'||k==='ArrowLeft'?-5:k==='PageUp'?60:k==='PageDown'?-60:0;if(!st)return;e.preventDefault();dial.f=Math.max(5,Math.min(dialMax(),Math.round(dial.f/5)*5+st));applyDial()});
 function pickSug(s,explicit){$('inN').value=s.n;sh.c=s.c;if(explicit||!sh.durEdited)fillDur(s);else renderSheet();renderSug();$('shErr').textContent=''}
 $('tabT').addEventListener('click',()=>{sh.tab='t';renderSheet()});$('tabD').addEventListener('click',()=>{sh.tab='d';renderSheet()});
 $('shX').addEventListener('click',closeSheet);$('back').addEventListener('click',e=>{if(e.target===$('back'))closeSheet()});
-['inN','inH','inM','inS','inE'].forEach(id=>$(id).addEventListener('input',()=>{$('shErr').textContent=''}));
+['inN','inH','inM','inS','inE'].forEach(id=>$(id).addEventListener('input',()=>{$('shErr').textContent='';if(id!=='inN')dialFromInputs()}));
 ['inH','inM','inE'].forEach(id=>$(id).addEventListener('input',()=>{if(sh){sh.durEdited=true;if(sh.filled){sh.filled=null;renderSheet()}}}));
 $('inS').addEventListener('input',()=>{if(sh&&sh.filled&&!sh.durEdited){const st=parseT($('inS').value);if(!isNaN(st))$('inE').value=hhmm(Math.min(st+sh.filled.avg,1439))}});
 $('inN').addEventListener('input',()=>{if(!sh)return;const q=$('inN').value.trim().toLowerCase();if(sh.kind!=='edit'&&q){const ex=stats().find(s=>s.n.toLowerCase()===q);if(ex&&!sh.durEdited&&sh.filled!==ex){sh.c=ex.c;fillDur(ex)}}renderSug()});
@@ -524,7 +554,7 @@ return fb}
 function authMsg(e){const c=(e&&e.code)||'';const m={'auth/operation-not-allowed':'This sign-in method isn’t turned on in Firebase yet.','auth/invalid-credential':'That email and password don’t match.','auth/wrong-password':'That email and password don’t match.','auth/user-not-found':'No account with that email yet. Tap Create account.','auth/email-already-in-use':'That email already has an account. Tap Sign in.','auth/weak-password':'Use at least 6 characters for the password.','auth/invalid-email':'That email doesn’t look right.','auth/unauthorized-domain':'This site isn’t on Firebase’s Authorized domains list yet.','auth/popup-closed-by-user':'','auth/cancelled-popup-request':'','auth/network-request-failed':'No connection. Try again.','auth/too-many-requests':'Too many tries. Wait a minute and try again.'};return c in m?m[c]:'Sign-in didn’t work ('+(c||(e&&e.message)||'unknown error')+').'}
 
 /* ---------- friends and spot requests ---------- */
-let friendsLoaded=false,FB=null,me=null,friends=[],viewF=null,fday={},reqIn=[],reqOut=[],unsubs=[],dayUnsubs=[],seenReq=new Set(),handled=new Set(),pendingJoin=null,authErr='',fireState='off',panel=null,myInvite=null,confirmRm=null,inited=false;
+let pokesIn=[],pokesOut=[],seenPoke=new Set(),handledPoke=new Set(),friendsLoaded=false,FB=null,me=null,friends=[],viewF=null,fday={},reqIn=[],reqOut=[],unsubs=[],dayUnsubs=[],seenReq=new Set(),handled=new Set(),pendingJoin=null,authErr='',fireState='off',panel=null,myInvite=null,confirmRm=null,inited=false;
 const fcol=c=>P[c]||P[5];
 function stopAll(){unsubs.concat(dayUnsubs).forEach(f=>{try{f()}catch(_){}});unsubs=[];dayUnsubs=[]}
 function curFriend(){return friends.find(f=>f.uid===viewF)||null}
@@ -533,8 +563,20 @@ function shownF(){return isLand()?(me?(curFriend()||friends[0]||null):null):curF
 function dayLbl(k){if(k===todayKey())return'Today';const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}
 function applyMode(){const land=isLand(),f=shownF();document.body.classList.toggle('land',land);
 document.body.classList.toggle('duo',!!(land&&f));document.body.classList.toggle('vf',!!(!land&&f));
-$('mcap').textContent=me?me.name:'You';$('fcap').textContent=f?f.name+(friends.length>1?'  ⇄':''):'';
-$('bannerTxt').textContent=f&&!land?'Viewing '+f.name+'’s day. Tap an open spot to ask for it.':'';renderFriend()}
+$('mcap').textContent=me?me.name:'You';const pn=f?pokeNote(f):'';
+$('fcap').innerHTML=f?`<span data-a="cycle">${esc(f.name)}${friends.length>1?' ⇄':''}</span>${pn?' <span style="font-weight:400;color:var(--muted)">· '+esc(pn)+'</span>':''}<button class="poke" data-a="poke">Check in</button>`:'';
+$('bannerTxt').textContent=f&&!land?'Viewing '+f.name+'’s day. Tap an open spot to ask for it.'+(pn?' '+pn+'.':''):'';renderFriend()}
+function lastPoke(f){return pokesOut.filter(p=>p.to===f.uid).sort((a,b)=>b.created-a.created)[0]||null}
+function pokeNote(f){const p=lastPoke(f);if(!p)return'';if(p.status==='pending')return Date.now()-p.created<36e5?'Check-in sent, waiting':'';
+const t=new Date(p.answeredAt||p.updated);return Date.now()-t<6*36e5?p.answer+' at '+fmt(t.getHours()*60+t.getMinutes()):''}
+async function sendPoke(f){if(!f||!me)return;const p=lastPoke(f);if(p&&p.status==='pending'&&Date.now()-p.created<30*6e4){msg('Already asked '+f.name+'. Waiting for an answer.');return}
+try{await FB.add('pokes',{from:me.uid,fromName:me.name,to:f.uid,toName:f.name,status:'pending',fromSeen:false,created:Date.now(),updated:Date.now()});buzz();msg('Asked '+f.name+' what they’re doing.')}catch(e){msg('Couldn’t send the check-in. Try again.')}}
+function openPoke(id){panel={kind:'poke',id};renderPanel();$('back2').style.display='flex'}
+function nowActivity(){const x=liveItem();if(x&&x.n!=='New activity')return x.n;if(day!==todayKey())return'';const n=nowMin(),it=S.find(s=>n>=s.ts&&n<s.ts+s.m);return it?it.n:''}
+async function answerPoke(id,name,startT){const p=pokesIn.find(q=>q.id===id);if(!p||!name)return;name=name.trim().slice(0,40);closeP();
+if(startT){if(day!==todayKey())await loadDay(todayKey(),false);const x=liveItem();
+if(!timing){await toggleTimer();if(timing)nameLive(name)}else if(x&&x.n!==name){if(x.n==='New activity')nameLive(name);else{stopTimer(' ');await toggleTimer();if(timing)nameLive(name)}}}
+try{await FB.update('pokes/'+id,{status:'answered',answer:name,answeredAt:Date.now(),updated:Date.now()});msg('Sent to '+p.fromName+': '+name+'.')}catch(e){msg('Couldn’t send your answer. Try again.')}}
 addEventListener('resize',applyMode);addEventListener('orientationchange',()=>setTimeout(applyMode,250));
 const TRACK_D='M'+X.map((x,i)=>x.toFixed(1)+' '+Y[i].toFixed(1)).join('L');
 const NOON=`<line x1="0" x2="300" y1="270" y2="270" stroke-width="1" stroke-dasharray="3 4" style="stroke:var(--line2)"/><rect x="3" y="252" width="26" height="15" rx="7.5" stroke-width="1" style="fill:var(--panel);stroke:var(--line2)"/><text x="16" y="259.5" text-anchor="middle" dominant-baseline="central" font-size="10" style="fill:var(--text2)">AM</text><rect x="3" y="273" width="26" height="15" rx="7.5" stroke-width="1" style="fill:var(--panel);stroke:var(--line2)"/><text x="16" y="280.5" text-anchor="middle" dominant-baseline="central" font-size="10" style="fill:var(--text2)">PM</text>`;
@@ -550,7 +592,7 @@ function myAsks(fid){return reqOut.filter(r=>r.to===fid&&r.day===day&&r.status==
 function renderFriend(){const f=shownF(),el=$('fbox');if(!f){el.innerHTML='';return}
 el.innerHTML=coilSVG(fday[f.uid]||[],myAsks(f.uid).map(r=>({ts:r.ts,m:r.m,c:me?me.c:5,n:r.n+'?'})))}
 function renderReqOverlay(){ol.innerHTML=ghostSVG(reqIn.filter(r=>r.status==='pending'&&r.day===day).map(r=>({ts:r.ts,m:r.m,c:r.fc,n:r.fromName+': '+r.n+'?'})))}
-function updBadge(){const n=reqIn.filter(r=>r.status==='pending').length,b=$('badge');b.textContent=n;b.style.display=n?'flex':'none'}
+function updBadge(){const n=reqIn.filter(r=>r.status==='pending').length+pokesIn.filter(p=>p.status==='pending'&&Date.now()-p.created<6*36e5).length,b=$('badge');b.textContent=n;b.style.display=n?'flex':'none'}
 function subDays(){dayUnsubs.forEach(f=>{try{f()}catch(_){}});dayUnsubs=[];if(!FB||!me)return;const k=day;
 friends.forEach(f=>{dayUnsubs.push(FB.listen(`users/${f.uid}/days/${k}`,(d,e)=>{if(k!==day)return;fday[f.uid]=d&&Array.isArray(d.items)?d.items.filter(valid):[];renderFriend()}))})}
 function onDayChange(){if(!inited)return;subDays();renderReqOverlay();applyMode()}
@@ -565,6 +607,13 @@ unsubs.push(FB.listenWhere('requests','to',uid,(list)=>{if(!list)return;reqIn=li
 const fresh=list.filter(r=>r.status==='pending'&&!seenReq.has(r.id));fresh.forEach(r=>seenReq.add(r.id));
 if(fresh.length){const r=fresh[0];buzz();msg(r.fromName+' asked for '+r.n+' at '+fmt(r.ts)+(r.day!==day?' ('+dayLbl(r.day)+')':'')+'.','View',()=>openReview(r.id))}
 updBadge();renderReqOverlay();renderPanel()}));
+unsubs.push(FB.listenWhere('pokes','to',uid,(list)=>{if(!list)return;pokesIn=list;
+const fresh=list.filter(p=>p.status==='pending'&&!seenPoke.has(p.id)&&Date.now()-p.created<6*36e5);list.forEach(p=>seenPoke.add(p.id));
+if(fresh.length){const p=fresh[0];buzz();msg(p.fromName+' is checking in: what are you doing?','Answer',()=>openPoke(p.id))}
+updBadge();renderPanel()}));
+unsubs.push(FB.listenWhere('pokes','from',uid,(list)=>{if(!list)return;pokesOut=list;
+list.filter(p=>p.status==='answered'&&!p.fromSeen&&!handledPoke.has(p.id)).forEach(async p=>{handledPoke.add(p.id);buzz();msg(p.toName+' is doing: '+p.answer+'.');
+try{await FB.update('pokes/'+p.id,{fromSeen:true,updated:Date.now()})}catch(_){}});applyMode();renderPanel()}));
 unsubs.push(FB.listenWhere('requests','from',uid,(list)=>{if(!list)return;reqOut=list;
 list.filter(r=>r.status!=='pending'&&!r.fromSeen&&!handled.has(r.id)).forEach(async r=>{handled.add(r.id);
 if(r.status==='accepted'){const ok=await applyAccepted(r);msg(r.toName+' accepted '+r.n+' ('+dayLbl(r.day)+' '+fmt(r.ts)+').'+(ok?' It’s on your day too.':' It overlaps something on your day, so it wasn’t added.'))}
@@ -601,7 +650,7 @@ pendingJoin=null;try{history.replaceState(null,'',location.pathname+location.sea
 function migrateLegacy(uid){if(LS.get('rooster.migrated'))return;try{const pre='rooster.day.',np='rooster.u.'+uid+'.day.';const ks=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith(pre))ks.push(k)}
 ks.forEach(k=>{const nk=np+k.slice(pre.length);if(!LS.get(nk))LS.set(nk,LS.get(k))});const tm=LS.get('rooster.timing');if(tm&&!LS.get('rooster.u.'+uid+'.timing'))LS.set('rooster.u.'+uid+'.timing',tm)}catch(_){}LS.set('rooster.migrated',uid)}
 function readTimingLocal(){try{const tm=JSON.parse(LS.get(LP+'timing')||'null');return tm&&tm.id&&tm.t0&&tm.day?tm:null}catch(_){return null}}
-async function onAuth(u){stopAll();friendsLoaded=false;friends=[];reqIn=[];reqOut=[];fday={};viewF=null;seenReq=new Set();handled=new Set();confirmRm=null;
+async function onAuth(u){stopAll();friendsLoaded=false;pokesIn=[];pokesOut=[];seenPoke=new Set();handledPoke=new Set();friends=[];reqIn=[];reqOut=[];fday={};viewF=null;seenReq=new Set();handled=new Set();confirmRm=null;
 if(u){fireState='in';const uid=u.uid;migrateLegacy(uid);LP='rooster.u.'+uid+'.';
 let p=null;try{p=await withTO(FB.get('users/'+uid))}catch(_){}
 me={uid,name:(p&&p.name)||u.name||(u.email||'').split('@')[0]||'Me',c:(p&&Number.isInteger(p.c))?p.c:Math.floor(Math.random()*P.length),email:u.email||''};
@@ -625,9 +674,16 @@ const st=r.status==='pending'?(inc?'':'Waiting'):r.status==='accepted'?'Accepted
 return`<div class="li"><i class="dot" style="background:${c[0]}"></i><div style="flex:1;min-width:0">${inc?'<b>'+esc(r.fromName)+'</b>: ':'To <b>'+esc(r.toName)+'</b>: '}${esc(r.n)}<br><small>${when}${st?' · '+st:''}</small></div>`+
 (inc&&r.status==='pending'?`<button class="btn2" data-a="decline" data-id="${r.id}">Decline</button><button class="btn2 pri" data-a="accept" data-id="${r.id}">Accept</button>`:'')+
 (!inc&&r.status==='pending'?`<button class="btn2" data-a="cancel" data-id="${r.id}">Cancel</button>`:'')+'</div>'}
-function renderPanel(){if(!panel)return;const el=$('sheet2');const keep={};['em','pw','joinIn','myName'].forEach(id=>{const i=$(id);if(i)keep[id]=i.value});
-let h=`<div class="row" style="justify-content:space-between;margin-bottom:4px"><h3>${panel.kind==='review'?'Spot request':'Friends and sharing'}</h3><button class="x" data-a="close" aria-label="Close">&times;</button></div>`;
-if(panel.kind==='review'){const r=reqIn.find(q=>q.id===panel.id);
+function renderPanel(){if(!panel)return;const el=$('sheet2');const keep={};['em','pw','joinIn','myName','pokeIn'].forEach(id=>{const i=$(id);if(i)keep[id]=i.value});
+let h=`<div class="row" style="justify-content:space-between;margin-bottom:4px"><h3>${panel.kind==='review'?'Spot request':panel.kind==='poke'?'Check-in':'Friends and sharing'}</h3><button class="x" data-a="close" aria-label="Close">&times;</button></div>`;
+if(panel.kind==='poke'){const p=pokesIn.find(q=>q.id===panel.id);
+if(!p||p.status!=='pending')h+=`<p class="muted">${p?'You already answered this one.':'This check-in is gone.'}</p>`;
+else{const cur=nowActivity(),names=[...new Set([...stats().map(s=>s.n),...DEFAULTS])].filter(n=>n&&n!==cur).slice(0,10);
+h+=`<p style="margin:6px 0 10px"><b>${esc(p.fromName)}</b> wants to know what you’re doing right now.</p><div class="chips cwrap">`+(cur?`<span class="chip on" data-a="pokeAns" data-n="${esc(cur)}">Still: ${esc(cur)}</span>`:'')+names.map(n=>`<span class="chip" data-a="pokeAns" data-n="${esc(n)}">${esc(n)}</span>`).join('')+`</div>
+<div class="row" style="margin-top:4px"><input id="pokeIn" maxlength="40" placeholder="Something else" style="flex:1;height:40px"><button class="btn2 pri" data-a="pokeAns">Send</button></div>
+<label class="hint" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:13px"><input type="checkbox" id="pokeTime" ${cur?'':'checked'} style="width:20px;height:20px">Also start timing it on my day</label>
+<button class="btn2" data-a="pokeSkip" data-id="${p.id}" style="margin-top:10px">Not now</button>`}}
+else if(panel.kind==='review'){const r=reqIn.find(q=>q.id===panel.id);
 if(!r)h+=`<p class="muted">This request was cancelled.</p>`;
 else{h+=`<div class="li" style="border:none"><i class="dot" style="background:${fcol(r.fc)[0]}"></i><div style="flex:1"><b>${esc(r.fromName)}</b> wants to add <b>${esc(r.n)}</b> to your day<br><small>${dayLbl(r.day)} · ${fmt(r.ts)}–${fmt(r.ts+r.m)} (${dur(r.m)})</small></div></div>`;
 h+=r.status==='pending'?`<div class="row" style="margin-top:10px"><button class="btn2" data-a="decline" data-id="${r.id}" style="flex:1;height:46px">Decline</button><button class="btn2 pri" data-a="accept" data-id="${r.id}" style="flex:1;height:46px">Accept</button></div><p class="hint">Accept and it’s locked onto both your days. Decline and ${esc(r.fromName)} gets told.</p>`:`<p class="muted">You ${r.status} this one.</p>`}}
@@ -641,11 +697,13 @@ else if(fireState==='out'){h+=`<p class="muted">Sign in to sync your days across
 <div class="err" id="authErr">${esc(authErr)}</div><p class="hint">On iPhone, if Google sign-in doesn’t open from your home-screen app, use email instead.</p>`}
 else if(me){
 if(pendingJoin)h+=`<div class="sec">Invite</div><div class="li" style="border:none"><div style="flex:1">Join with code <b>${esc(pendingJoin)}</b>?</div><button class="btn2 pri" data-a="joinPending">Join</button></div>`;
+const pk=pokesIn.filter(p=>p.status==='pending'&&Date.now()-p.created<6*36e5);
+if(pk.length)h+=`<div class="sec">Check-ins for you</div>`+pk.map(p=>`<div class="li"><div style="flex:1"><b>${esc(p.fromName)}</b> wants to know what you’re doing</div><button class="btn2 pri" data-a="pokeOpen" data-id="${p.id}">Answer</button></div>`).join('');
 const inc=reqIn.filter(r=>r.status==='pending').sort((a,b)=>a.day.localeCompare(b.day)||a.ts-b.ts);
 h+=`<div class="sec">Requests for you</div>`+(inc.length?inc.map(r=>reqRow(r,true)).join(''):`<p class="muted">None right now.</p>`);
 const out=reqOut.filter(r=>r.day>=todayKey()).sort((a,b)=>b.created-a.created).slice(0,8);
 if(out.length)h+=`<div class="sec">Your requests</div>`+out.map(r=>reqRow(r,false)).join('');
-h+=`<div class="sec">Friends</div>`+(friends.length?friends.map(f=>`<div class="li"><i class="dot" style="background:${fcol(f.c)[0]}"></i><div style="flex:1">${esc(f.name)}</div>`+(confirmRm===f.uid?`<button class="btn2 dng" data-a="rmYes" data-u="${f.uid}">Remove?</button><button class="btn2" data-a="rmNo">Keep</button>`:`<button class="btn2" data-a="view" data-u="${f.uid}">View</button><button class="btn2" data-a="rm" data-u="${f.uid}" aria-label="Remove ${esc(f.name)}">&times;</button>`)+'</div>').join('')+`<p class="hint">Turn your phone sideways to see your day next to a friend’s.</p>`:`<p class="muted">No friends yet. Invite someone below.</p>`);
+h+=`<div class="sec">Friends</div>`+(friends.length?friends.map(f=>`<div class="li"><i class="dot" style="background:${fcol(f.c)[0]}"></i><div style="flex:1;min-width:0">${esc(f.name)}${pokeNote(f)?'<br><small>'+esc(pokeNote(f))+'</small>':''}</div>`+(confirmRm===f.uid?`<button class="btn2 dng" data-a="rmYes" data-u="${f.uid}">Remove?</button><button class="btn2" data-a="rmNo">Keep</button>`:`<button class="btn2" data-a="pokeF" data-u="${f.uid}">Check in</button><button class="btn2" data-a="view" data-u="${f.uid}">View</button><button class="btn2" data-a="rm" data-u="${f.uid}" aria-label="Remove ${esc(f.name)}">&times;</button>`)+'</div>').join('')+`<p class="hint">Turn your phone sideways to see your day next to a friend’s.</p>`:`<p class="muted">No friends yet. Invite someone below.</p>`);
 const inv=myInvite&&Date.now()-myInvite.created<7*864e5?myInvite:null;const link=inv?location.origin+location.pathname+'#join-'+inv.code:'';
 h+=`<div class="sec">Add a friend</div>`+(inv?`<div class="code">${inv.code}</div><div class="row"><input readonly id="invLink" value="${esc(link)}" style="flex:1;font-size:13px"><button class="btn2" data-a="copy">Copy link</button></div><p class="hint">Send them the link or the code. Once they join, you can see each other’s days. It works for 7 days. <button class="btn2" data-a="invite" style="height:28px;font-size:12px">New code</button></p>`:`<button class="btn2 pri" data-a="invite" style="width:100%;height:44px">Create an invite</button>`)+
 `<div class="row" style="margin-top:10px"><input id="joinIn" placeholder="Have a code? Enter it" maxlength="6" autocapitalize="characters" autocomplete="off" style="flex:1;text-transform:uppercase"><button class="btn2 pri" data-a="join">Join</button></div><div class="err" id="frErr"></div>`;
@@ -665,6 +723,10 @@ else if(a==='emIn'||a==='emUp'){authErr='';const em=$('em').value.trim(),pw=$('p
 if(a==='emIn')await FB.emailIn(em,pw);else await FB.emailUp(em,pw)}
 else if(a==='signout'){await FB.out();closeP()}
 else if(a==='view'){viewF=u;closeP();applyMode()}
+else if(a==='pokeF'){await sendPoke(friends.find(f=>f.uid===u));renderPanel()}
+else if(a==='pokeOpen'){openPoke(id)}
+else if(a==='pokeAns'){const n=b.dataset.n||($('pokeIn')?$('pokeIn').value.trim():'');if(!n){const i=$('pokeIn');if(i)i.focus();return}const st=$('pokeTime');answerPoke(panel.id,n,!!(st&&st.checked))}
+else if(a==='pokeSkip'){await FB.del('pokes/'+id);closeP()}
 else if(a==='rm'){confirmRm=u;renderPanel()}else if(a==='rmNo'){confirmRm=null;renderPanel()}
 else if(a==='rmYes'){confirmRm=null;await FB.del(`users/${me.uid}/friends/${u}`);await FB.del(`users/${u}/friends/${me.uid}`).catch(()=>{});if(viewF===u)viewF=null;msg('Removed. You can no longer see each other’s days.')}
 else if(a==='invite'){await createInvite();renderPanel()}
@@ -675,7 +737,8 @@ else if(a==='myColor'){me.c=+b.dataset.c;await FB.set('users/'+me.uid,{name:me.n
 }catch(err){if(a==='google'||a==='emIn'||a==='emUp'){authErr=authMsg(err);renderPanel()}else fe(err&&err.message&&!err.code?err.message:'That didn’t work. Check your connection and try again.')}});
 $('frBtn').addEventListener('click',()=>{closeMenu();openFriends()});
 $('backMine').addEventListener('click',()=>{viewF=null;applyMode()});
-$('fcap').addEventListener('click',()=>{if(friends.length<2)return;const f=shownF(),i=friends.indexOf(f);viewF=friends[(i+1)%friends.length].uid;applyMode()});
+$('fcap').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&&b.dataset.a==='poke'){sendPoke(shownF());return}if(friends.length<2)return;const f=shownF(),i=friends.indexOf(f);viewF=friends[(i+1)%friends.length].uid;applyMode()});
+$('bannerPoke').addEventListener('click',()=>sendPoke(shownF()));
 // Tap a friend's coil: an activity shows its time, your waiting request offers cancel, an open spot starts a request.
 $('fbox').addEventListener('click',e=>{const f=shownF();if(!f||!me)return;const sv=$('fbox'),p=sv.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const M=sv.getScreenCTM();if(!M)return;const q=p.matrixTransform(M.inverse()),n=near(q);if(n.d>TW/2+4)return;
 const items=fday[f.uid]||[],it=items.find(o=>n.m>=o.ts&&n.m<=o.ts+o.m);if(it){msg(f.name+': '+it.n+' · '+fmt(it.ts)+'–'+fmt(it.ts+it.m));return}
