@@ -1,0 +1,88 @@
+rules_version = '2';
+
+// ROOSTER security rules. Paste into Firebase console > Firestore Database > Rules, then Publish.
+//
+// users/{uid}                    profile: name and color
+// users/{uid}/days/{date}        a day's activities: only you write; only you and your friends read
+// users/{uid}/friends/{fid}      "fid can see my days"
+// users/{uid}/state/{doc}        private app state (running timer)
+// invites/{code}                 a 6-character code someone can use to connect with you
+// requests/{id}                  spot requests between friends
+
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+    // True when `owner` has listed the signed-in person as a friend.
+    function sharesWith(owner) {
+      return exists(/databases/$(db)/documents/users/$(owner)/friends/$(me()));
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow write: if signedIn() && me() == uid
+        && request.resource.data.keys().hasOnly(['name', 'c', 'updated'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 24;
+
+      match /days/{day} {
+        allow read: if signedIn() && (me() == uid || sharesWith(uid));
+        allow write: if signedIn() && me() == uid;
+      }
+
+      match /state/{doc} {
+        allow read, write: if signedIn() && me() == uid;
+      }
+
+      match /friends/{fid} {
+        allow read: if signedIn() && (me() == uid || me() == fid);
+        // Either side can end the friendship.
+        allow delete: if signedIn() && (me() == uid || me() == fid);
+        // You can add anyone to your own list. Someone else can add themselves to your
+        // list only with a valid invite code that you created.
+        allow create, update: if signedIn() && (
+          me() == uid ||
+          (me() == fid
+            && request.resource.data.invite is string
+            && exists(/databases/$(db)/documents/invites/$(request.resource.data.invite))
+            && get(/databases/$(db)/documents/invites/$(request.resource.data.invite)).data.from == uid)
+        );
+      }
+    }
+
+    match /invites/{code} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.from == me()
+        && code.size() == 6;
+      allow delete: if signedIn() && resource.data.from == me();
+    }
+
+    match /requests/{id} {
+      allow read: if signedIn() && (resource.data.from == me() || resource.data.to == me());
+
+      // Only to someone who has you on their friends list, only as pending.
+      allow create: if signedIn()
+        && request.resource.data.from == me()
+        && request.resource.data.status == 'pending'
+        && sharesWith(request.resource.data.to)
+        && request.resource.data.n is string && request.resource.data.n.size() <= 40
+        && request.resource.data.m is number && request.resource.data.m >= 5 && request.resource.data.m <= 1440
+        && request.resource.data.ts is number && request.resource.data.ts >= 0
+        && request.resource.data.ts + request.resource.data.m <= 1440;
+
+      allow update: if signedIn() && (
+        // The person asked can accept or decline once.
+        (resource.data.to == me() && resource.data.status == 'pending'
+          && request.resource.data.status in ['accepted', 'declined']
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updated']))
+        ||
+        // The asker can only mark the answer as seen.
+        (resource.data.from == me()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fromSeen', 'updated']))
+      );
+
+      // The asker can cancel; either side can clear it away.
+      allow delete: if signedIn() && (resource.data.from == me() || resource.data.to == me());
+    }
+  }
+}

@@ -25,12 +25,36 @@ header{display:flex;align-items:center;gap:6px;padding:2px 2px 4px}
 .add{height:40px;border-radius:20px;border:none;background:var(--btn);color:var(--btn-text);font-size:15px;font-weight:600;padding:0 16px;cursor:pointer}
 .sub{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);padding:2px 6px 6px}
 .stage{flex:1;min-height:0;display:flex;justify-content:center}
-svg#box{width:100%;height:100%;max-height:100%;display:block;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;background:var(--panel);border:0.5px solid var(--line);border-radius:16px}
+.stage{gap:8px}
+.col{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;max-width:440px}
+.cap{display:none;font-size:12px;font-weight:600;color:var(--text2);text-align:center;height:18px;line-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.col svg{width:100%;flex:1;min-height:0;display:block;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;background:var(--panel);border:0.5px solid var(--line);border-radius:16px}
+#fcol{display:none}
+body.vf #mcol{display:none} body.vf #fcol{display:flex}
+body.duo #fcol{display:flex} body.land .cap{display:block}
+body.land .sub,body.land #live{display:none}
+body.land .wrap{max-width:none}
+body.land header{padding:0 2px 2px}
+.banner{display:none;align-items:center;gap:8px;font-size:13px;color:var(--text2);padding:0 4px 6px}
+body.vf .banner{display:flex}
+.fbtn{position:relative}
+.badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;border-radius:9px;background:#D85A30;color:#fff;font-size:11px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 4px}
+.btn2{height:36px;border-radius:18px;border:0.5px solid var(--line2);background:var(--panel);color:var(--text);font-size:14px;padding:0 14px;cursor:pointer;flex:none}
+.btn2.pri{background:var(--btn);color:var(--btn-text);border:none}
+.btn2.dng{color:var(--danger)}
+.sec{font-size:13px;font-weight:600;color:var(--text2);margin:18px 0 4px}
+.li{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:0.5px solid var(--line);font-size:15px}
+.sec+.li{border-top:none}
+.li .dot{width:12px;height:12px;border-radius:6px;flex:none}
+.li small{color:var(--muted);font-size:12px}
+.sheet{max-height:88vh;overflow-y:auto}
+.code{font-size:30px;font-weight:800;letter-spacing:6px;text-align:center;padding:10px;border:1px dashed var(--line2);border-radius:12px;margin:8px 0}
+.muted{color:var(--muted);font-size:14px;margin:6px 0}
 #live{height:76px;flex:none;padding:8px 4px 0;font-size:14px;color:var(--text2);line-height:1.5;overflow:hidden}
 .chips{display:flex;gap:6px;overflow-x:auto;white-space:nowrap;padding-bottom:6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}.chips::-webkit-scrollbar{display:none}
 .chip{flex:none;display:inline-flex;align-items:center;height:36px;font-size:14px;padding:0 14px;border-radius:999px;border:0.5px solid var(--line2);color:var(--text);background:var(--panel);cursor:pointer}
 .chip.on{background:var(--accent-bg);color:var(--accent);border-color:transparent}
-#msg{font-size:13px;color:var(--danger);min-height:18px;padding:2px 4px}
+#msg{font-size:13px;font-weight:600;color:var(--text);min-height:18px;padding:2px 4px}
 #msg button{margin-left:8px;font-size:13px;border:0.5px solid var(--line2);background:var(--panel);color:var(--text);border-radius:999px;padding:3px 10px}
 .back{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:flex-end;justify-content:center;z-index:10}
 .sheet{width:100%;max-width:440px;background:var(--panel);border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));box-shadow:0 -4px 20px rgba(0,0,0,.15)}
@@ -61,22 +85,26 @@ input[type=time]{flex:1}
 <button class="ib" id="prev" aria-label="Previous day">&#8249;</button>
 <div class="day"><b id="dayLabel">Today</b><span id="daySub"></span></div>
 <button class="ib" id="next" aria-label="Next day">&#8250;</button>
+<button class="ib fbtn" id="frBtn" aria-label="Friends and sharing"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.6"/><path d="M16 13.6c2.8.2 5 2.2 5 5"/></svg><span class="badge" id="badge"></span></button>
 <button class="add" id="addBtn" aria-label="Add an activity">+ Add</button>
 </header>
 <div class="sub"><span id="info">Tap an activity to see its times</span><span id="used"></span></div>
+<div class="banner" id="banner"><span id="bannerTxt" style="flex:1"></span><button class="btn2" id="backMine">Back to mine</button></div>
 <div class="stage">
+<div class="col" id="mcol"><div class="cap" id="mcap">You</div>
 <svg id="box" viewBox="0 0 300 540" preserveAspectRatio="xMidYMid meet" aria-label="Your day as a coil of activities">
-<defs><filter id="goo" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b"/><feColorMatrix in="b" mode="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 20 -9"/></filter></defs>
+<defs><filter id="goo" filterUnits="userSpaceOnUse" x="-20" y="-20" width="340" height="580"><feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b"/><feColorMatrix in="b" mode="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 20 -9"/></filter></defs>
 <path id="track" fill="none" stroke-width="42" stroke-linecap="round" style="stroke:var(--track)"/>
 <g id="gl" filter="url(#goo)"></g><g id="ol"></g>
 <line x1="0" x2="300" y1="270" y2="270" stroke-width="1" stroke-dasharray="3 4" style="stroke:var(--line2)"/>
 <g><rect x="3" y="252" width="26" height="15" rx="7.5" stroke-width="1" style="fill:var(--panel);stroke:var(--line2)"/><text x="16" y="259.5" text-anchor="middle" dominant-baseline="central" font-size="10" style="fill:var(--text2)">AM</text><rect x="3" y="273" width="26" height="15" rx="7.5" stroke-width="1" style="fill:var(--panel);stroke:var(--line2)"/><text x="16" y="280.5" text-anchor="middle" dominant-baseline="central" font-size="10" style="fill:var(--text2)">PM</text></g>
 <g id="tl"></g><g id="jl"></g><g id="fab"></g><g id="mn"></g>
-</svg>
+</svg></div>
+<div class="col" id="fcol"><div class="cap" id="fcap" role="button"></div><svg id="fbox" viewBox="0 0 300 540" preserveAspectRatio="xMidYMid meet" aria-label="Your friend's day"></svg></div>
 </div>
 <div id="msg" role="status"></div>
 <div id="live" data-other=""></div>
-<div class="sub" style="padding-top:4px"><span id="sync">Saved on this phone</span><span>Hold for options · pinch to resize</span></div>
+<div class="sub foot" style="padding-top:4px"><span id="sync">Saved on this phone</span><span>Hold for options · pinch to resize</span></div>
 </div>
 
 <div class="back" id="back">
@@ -85,7 +113,7 @@ input[type=time]{flex:1}
 <input id="inN" type="text" maxlength="40" placeholder="Start typing, or pick one below" autocomplete="off" aria-label="Activity name" style="width:100%">
 <div class="sug" id="sug" role="listbox" aria-label="Activities you've logged before"></div>
 <div class="sw" id="sw"></div>
-<div class="tabs"><button id="tabT">Start and end</button><button id="tabD">Just a length</button></div>
+<div class="tabs" id="tabs"><button id="tabT">Start and end</button><button id="tabD">Just a length</button></div>
 <div id="pT" class="row"><input id="inS" type="time" step="300" aria-label="Start time"><span style="color:var(--text2)">to</span><input id="inE" type="time" step="300" aria-label="End time"></div>
 <div id="pD" class="row" style="display:none"><input id="inH" type="number" inputmode="numeric" min="0" max="24" aria-label="Hours" style="width:80px"><span style="color:var(--text2)">h</span><input id="inM" type="number" inputmode="numeric" min="0" max="59" step="5" aria-label="Minutes" style="width:80px"><span style="color:var(--text2)">m</span></div>
 <div class="hint" id="shHint"></div>
@@ -93,6 +121,8 @@ input[type=time]{flex:1}
 <button class="save" id="shSave">Save</button>
 </div>
 </div>
+
+<div class="back" id="back2"><div class="sheet" id="sheet2" role="dialog" aria-modal="true" aria-label="Friends and sharing"></div></div>
 
 <script>
 // ROOSTER 3D wireframe logo: extruded pieces traced from the owner's rooster design,
@@ -195,16 +225,16 @@ const nowMin=()=>{const d=new Date();return d.getHours()*60+d.getMinutes()+d.get
 const newId=()=>Math.random().toString(36).slice(2,8)+Date.now().toString(36);
 const buzz=()=>{try{navigator.vibrate&&navigator.vibrate(12)}catch(_){}};
 const LS={get(k){try{return localStorage.getItem(k)}catch(_){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(_){}}};
+let LP='rooster.'; // local key prefix; becomes rooster.u.<uid>. when signed in
 
 let S=[],t=0,sel=null,pressed=null,mode=null,p0=null,grab=0,hold=null,menu=null,timing=null,day=todayKey(),touched=false;
-let db=null,uid=null;
 
 const lockSVG=c=>`<path d="M-3.5 -1 v-2 a3.5 3.5 0 0 1 7 0 v2" fill="none" stroke="${c}" stroke-width="1.4"/><rect x="-5" y="-1" width="10" height="7.5" rx="1.5" fill="${c}"/>`;
 function mk(o){const p=document.createElementNS(NS,'path');p.setAttribute('fill','none');p.setAttribute('stroke-width',TW);p.setAttribute('stroke-linejoin','round');gl.append(p);
 const g=document.createElementNS(NS,'g');g.style.pointerEvents='none';g.style.display='none';
 const a=document.createElementNS(NS,'text');a.setAttribute('font-size','13');a.setAttribute('font-weight','600');a.setAttribute('text-anchor','middle');a.setAttribute('dominant-baseline','central');a.style.pointerEvents='none';
 const d2=document.createElementNS(NS,'text');d2.setAttribute('font-size','11');d2.setAttribute('text-anchor','middle');d2.setAttribute('dominant-baseline','central');d2.style.pointerEvents='none';tl.append(g,a,d2);
-const x={id:o.id||newId(),n:o.n,m:o.m,c:(o.c>=0&&o.c<P.length)?o.c:5,lk:!!o.lk,ts:o.ts||0,p,a,d2,g,cs:0,cm:0};paint(x);return x}
+const x={id:o.id||newId(),n:o.n,m:o.m,c:(o.c>=0&&o.c<P.length)?o.c:5,lk:!!o.lk,ts:o.ts||0,by:o.by||null,req:o.req||null,p,a,d2,g,cs:0,cm:0};paint(x);return x}
 function paint(x){const c=P[x.c];x.p.setAttribute('stroke',c[0]);x.a.setAttribute('fill',c[1]);x.d2.setAttribute('fill',c[1]);x.g.innerHTML=lockSVG(c[1])}
 function unmk(x){x.p.remove();x.a.remove();x.d2.remove();x.g.remove()}
 const total=()=>S.reduce((s,x)=>s+x.m,0);
@@ -212,36 +242,38 @@ const valid=o=>o&&typeof o.n==='string'&&Number.isFinite(o.m)&&o.m>0&&o.m<=1440&
 function layout(){const L=S.filter(x=>x.lk);let c=0,ok=L.every(x=>x.ts>=0&&x.ts+x.m<=1440);
 for(const x of S){if(x.lk)continue;let mv=true;while(mv){mv=false;for(const l of L)if(c<l.ts+l.m&&c+x.m>l.ts){c=l.ts+l.m;mv=true}}x.ts=c;c+=x.m;if(c>1440)ok=false}
 for(let i=0;i<L.length;i++)for(let j=i+1;j<L.length;j++){const a=L[i],b=L[j];if(a.ts<b.ts+b.m&&b.ts<a.ts+a.m)ok=false}return ok}
-const serialize=()=>S.map(x=>({id:x.id,n:x.n,m:x.m,c:x.c,lk:x.lk,ts:x.ts}));
+const serialize=()=>S.map(x=>{const o={id:x.id,n:x.n,m:x.m,c:x.c,lk:x.lk,ts:x.ts};if(x.by)o.by=x.by;if(x.req)o.req=x.req;return o});
 
 let msgT=null;
 function msg(s,actLabel,act){clearTimeout(msgT);const m=$('msg');m.textContent=s||'';if(actLabel){const b=document.createElement('button');b.textContent=actLabel;b.onclick=()=>{act();m.textContent=''};m.append(b)}if(s)msgT=setTimeout(()=>{m.textContent=''},actLabel?6000:4000)}
 function upd(){$('used').textContent=dur(Math.max(0,1440-total()))+' unplanned'}
-function setInfo(){$('info').textContent=sel&&S.includes(sel)?sel.n+' · '+fmt(sel.ts)+'–'+fmt(sel.ts+sel.m)+(sel.lk?' · locked':''):(S.length?'Tap an activity to see its times':'Tap + Add or the stopwatch to start')}
+function setInfo(){$('info').textContent=sel&&S.includes(sel)?sel.n+' · '+fmt(sel.ts)+'–'+fmt(sel.ts+sel.m)+(sel.by?' · from '+sel.by.name:'')+(sel.lk?' · locked':''):(S.length?'Tap an activity to see its times':'Tap + Add or the stopwatch to start')}
 function renderHeader(){const [y,m,d]=day.split('-').map(Number),dt=new Date(y,m-1,d);const tk=todayKey();
 const diff=Math.round((dt-new Date(...tk.split('-').map((v,i)=>i==1?v-1:+v)))/864e5);
 $('dayLabel').textContent=diff===0?'Today':diff===-1?'Yesterday':diff===1?'Tomorrow':dt.toLocaleDateString(undefined,{weekday:'long'});
 $('daySub').textContent=dt.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}
 
 function pth(a,b,still){const i0=idx(a),i1=idx(b);if(i1-i0<1)return"";let d="";for(let i=i0;i<=i1;i++){const w=still?0:1.6*Math.sin(X[i]/24+t+ROW[i]);d+=(i==i0?"M":"L")+X[i].toFixed(1)+" "+(Y[i]+(STR[i]?w:0)).toFixed(1)}return d}
-function label(x,a,b){const i0=idx(a),i1=idx(b);let best=null,cur=null;
+function labelFit(a,b,n,m,lk){const i0=idx(a),i1=idx(b);let best=null,cur=null;
 for(let i=i0;i<=i1;i++){if(STR[i]){if(!cur||cur.r!==ROW[i])cur={r:ROW[i],s:i,e:i};cur.e=i;if(!best||cur.e-cur.s>best.e-best.s)best={...cur}}else cur=null}
-if(!best){x.a.textContent="";x.d2.textContent="";x.g.style.display='none';return}
+if(!best)return null;
 let s0=best.s,e0=best.e;if(s0===i0)s0+=7;if(e0===i1)e0-=7;
-const len=Math.max(0,(e0-s0)*ST),mid=Math.round((s0+e0)/2),lw=x.lk?14:0;
-const nm=x.n.length>18?x.n.slice(0,17)+'\u2026':x.n;
-const fits=len>nm.length*7.6+lw+6;x.a.textContent=fits?nm:"";x.d2.textContent=fits?dur(x.m):"";
-const tw=nm.length*7.2,cx=X[mid]+lw/2;x.a.setAttribute('x',cx);x.a.setAttribute('y',Y[mid]-7);x.d2.setAttribute('x',X[mid]);x.d2.setAttribute('y',Y[mid]+10);
-if(x.lk&&len>16){x.g.style.display='';x.g.setAttribute('transform',`translate(${fits?cx-tw/2-10:X[mid]},${fits?Y[mid]-9:Y[mid]-2})`)}else x.g.style.display='none'}
-function junctions(){const pts=[];S.forEach(x=>{pts.push(x.cs,x.cs+x.cm)});pts.sort((a,b)=>a-b);
-const ms=[];pts.forEach(m=>{if(!ms.length||m-ms[ms.length-1]>2)ms.push(m)});
+const len=Math.max(0,(e0-s0)*ST),mid=Math.round((s0+e0)/2),lw=lk?14:0;
+const nm=n.length>18?n.slice(0,17)+'…':n;
+const fits=len>nm.length*7.6+lw+6,tw=nm.length*7.2,cx=X[mid]+lw/2;
+return{fits,nm,d:dur(m),ax:cx,ay:Y[mid]-7,dx:X[mid],dy:Y[mid]+10,lock:lk&&len>16?{x:fits?cx-tw/2-10:X[mid],y:fits?Y[mid]-9:Y[mid]-2}:null}}
+function label(x,a,b){const L=labelFit(a,b,x.n,x.m,x.lk);if(!L){x.a.textContent="";x.d2.textContent="";x.g.style.display='none';return}
+x.a.textContent=L.fits?L.nm:"";x.d2.textContent=L.fits?L.d:"";x.a.setAttribute('x',L.ax);x.a.setAttribute('y',L.ay);x.d2.setAttribute('x',L.dx);x.d2.setAttribute('y',L.dy);
+if(L.lock){x.g.style.display='';x.g.setAttribute('transform',`translate(${L.lock.x},${L.lock.y})`)}else x.g.style.display='none'}
+function tagsSVG(pts,now){pts=[...pts].sort((a,b)=>a-b);const ms=[];pts.forEach(m=>{if(!ms.length||m-ms[ms.length-1]>2)ms.push(m)});
 let h="";const placed=[];
 ms.forEach(m=>{const i=idx(m),a=Math.max(0,i-1),b=Math.min(NP-1,i+1);let r=Math.atan2(Y[b]-Y[a],X[b]-X[a])*180/Math.PI+90;while(r>=90)r-=180;while(r<-90)r+=180;
 const x=X[i],y=Y[i];if(placed.some(q=>Math.hypot(q.x-x,q.y-y)<20))return;placed.push({x,y});
 h+=`<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${r.toFixed(1)})"><text x="0" y="0.5" text-anchor="middle" dominant-baseline="central" font-size="12.5" font-weight="900" letter-spacing="0.6" style="font-family:'Arial Black','Helvetica Neue',Arial,sans-serif;fill:#ffffff;stroke:#1a1a1a;stroke-width:2.2px;stroke-linejoin:round;paint-order:stroke">${fmt5(m)}</text></g>`});
-if(day===todayKey()){const ni=idx(nowMin()),pr=timing?3+2*Math.abs(Math.sin(t*2)):0;
-h+=`<circle cx="${X[ni].toFixed(1)}" cy="${Y[ni].toFixed(1)}" r="${(9+pr).toFixed(1)}" fill="none" stroke="#D85A30" stroke-width="2" stroke-opacity="${timing?.7:0}"/><circle cx="${X[ni].toFixed(1)}" cy="${Y[ni].toFixed(1)}" r="5" fill="#D85A30" stroke="#ffffff" stroke-width="2"/>`}
-jl.innerHTML=h}
+if(now){const ni=idx(nowMin()),pr=now===2?3+2*Math.abs(Math.sin(t*2)):0;
+h+=`<circle cx="${X[ni].toFixed(1)}" cy="${Y[ni].toFixed(1)}" r="${(9+pr).toFixed(1)}" fill="none" stroke="#D85A30" stroke-width="2" stroke-opacity="${now===2?.7:0}"/><circle cx="${X[ni].toFixed(1)}" cy="${Y[ni].toFixed(1)}" r="5" fill="#D85A30" stroke="#ffffff" stroke-width="2"/>`}
+return h}
+function junctions(){jl.innerHTML=tagsSVG(S.flatMap(x=>[x.cs,x.cs+x.cm]),day===todayKey()?(timing?2:1):0)}
 function watch(run,sec){let s=`<circle cy="2" r="11" fill="none" stroke="#fff" stroke-width="2"/><rect x="-3" y="-14" width="6" height="3" rx="1" fill="#fff"/><line x1="8" y1="-7" x2="10.5" y2="-9.5" stroke="#fff" stroke-width="2" stroke-linecap="round"/>`;
 s+=run?`<rect x="-3.5" y="-1.5" width="7" height="7" rx="1.2" fill="#fff"/>`:`<path d="M-5 2h10M0 -3v10" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>`;
 const ring=run?`<circle r="27" fill="none" stroke="#D85A30" stroke-width="3" stroke-dasharray="${(169.6*((sec%60)/60)).toFixed(1)} 170" transform="rotate(-90)"/>`:"";
@@ -265,32 +297,43 @@ function nameLive(n){const x=liveItem();if(!x)return;x.n=n.slice(0,40);const use
 
 /* ---------- history (for autofill) ---------- */
 const hist={};
-try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('rooster.day.')){const d=k.slice(12);hist[d]=readLocalRaw(k)}}}catch(_){}
+function loadHistLocal(){for(const k in hist)delete hist[k];try{const pre=LP+'day.';for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith(pre)){const d=k.slice(pre.length);if(/^\d{4}-\d\d-\d\d$/.test(d))hist[d]=readLocalRaw(k)}}}catch(_){}}
 function readLocalRaw(k){try{const a=JSON.parse(LS.get(k)||'[]');return Array.isArray(a)?a.filter(valid):[]}catch(_){return[]}}
 function stats(){const m=new Map(),live=timing?timing.id:null;
 const cur=serialize();for(const [d,items] of Object.entries({...hist,[day]:cur}))for(const o of items){if(!o||o.id===live||!o.n||o.n==='New activity'||o.m<1)continue;
 const k=o.n.trim().toLowerCase();const s=m.get(k)||{n:o.n.trim(),tot:0,cnt:0,c:o.c,last:''};s.tot+=o.m;s.cnt++;if(d>=s.last){s.last=d;s.c=o.c;s.n=o.n.trim()}m.set(k,s)}
 return [...m.values()].map(s=>({...s,avg:Math.max(5,Math.round(s.tot/s.cnt/5)*5)})).sort((a,b)=>b.cnt-a.cnt||b.last.localeCompare(a.last))}
 /* ---------- storage ---------- */
-let wT=null,writing=false,again=null;
+// BK is the remote backend: claude.ai account storage, Firebase, or null (this phone only).
+let BK=null,wT=null,writing=false,again=null,tw=false;
 function withTO(p,ms=10000){return Promise.race([p,new Promise((_,r)=>setTimeout(()=>r({code:'timeout'}),ms))])}
-const dayRef=k=>db.collection("data/users/"+uid).doc("day-"+k);
-const stateRef=()=>db.collection("data/users/"+uid).doc("state");
 function setSync(s){$('sync').textContent=s}
-function save(){const k=day,items=serialize();hist[k]=items;LS.set('rooster.day.'+k,JSON.stringify(items));if(!db){setSync('Saved on this phone');return}clearTimeout(wT);wT=setTimeout(()=>cloudWrite(k,items),700)}
-async function cloudWrite(k,items){if(writing){again={k,items};return}writing=true;setSync('Saving\u2026');
-try{await withTO(dayRef(k).set({items,updated:Date.now()}));setSync('Saved to your account')}
-catch(e){setSync(e&&e.code==='quota_exceeded'?'Account storage is full':'Saved on this phone (account sync paused)')}
+const clean=v=>JSON.parse(JSON.stringify(v));
+function save(){const k=day,items=serialize();hist[k]=items;LS.set(LP+'day.'+k,JSON.stringify(items));if(!BK){setSync('Saved on this phone');return}clearTimeout(wT);wT=setTimeout(()=>cloudWrite(k,items),700)}
+async function cloudWrite(k,items){if(!BK)return;if(writing){again={k,items};return}writing=true;setSync('Saving…');
+try{await withTO(BK.setDay(k,clean(items)));setSync(BK?BK.label:'Saved on this phone')}
+catch(e){setSync(e&&e.code==='quota_exceeded'?'Account storage is full':'Saved on this phone (sync paused)')}
 writing=false;if(again){const a=again;again=null;cloudWrite(a.k,a.items)}}
-let tw=false;
-async function saveTiming(){const v=timing?JSON.stringify(timing):'';LS.set('rooster.timing',v);if(!db||tw)return;tw=true;try{await withTO(stateRef().set({timing:timing||null,updated:Date.now()}))}catch(_){}tw=false}
-function readLocal(k){try{const a=JSON.parse(LS.get('rooster.day.'+k)||'[]');return Array.isArray(a)?a.filter(valid):[]}catch(_){return[]}}
+async function saveTiming(){LS.set(LP+'timing',timing?JSON.stringify(timing):'');if(!BK||tw)return;tw=true;try{await withTO(BK.setTiming(timing?clean(timing):null))}catch(_){}tw=false}
+function readLocal(k){return readLocalRaw(LP+'day.'+k)}
 function clearDay(){closeMenu();S.forEach(unmk);S=[];sel=null}
 function buildDay(items,animate){items.forEach(o=>S.push(mk(o)));layout();S.forEach(x=>{x.cs=animate?0:x.ts;x.cm=animate?0:x.m})}
-async function loadDay(k,animate){day=k;touched=false;closeSheet();clearDay();buildDay(readLocal(k),animate);renderHeader();upd();setInfo();liveUI();drawFab();
-if(!db)return;try{const s=await withTO(dayRef(k).get());if(day!==k||touched)return;
-if(s.exists){const d=s.data(),items=Array.isArray(d.items)?d.items.filter(valid):[];hist[k]=items;if(JSON.stringify(items)!==JSON.stringify(serialize())){clearDay();buildDay(items,false);LS.set('rooster.day.'+k,JSON.stringify(items));upd();setInfo();liveUI()}setSync('Saved to your account')}
-else if(S.length)cloudWrite(k,serialize());else setSync('Saved to your account')}catch(e){setSync('Saved on this phone (account sync paused)')}}
+async function loadDay(k,animate){day=k;touched=false;closeSheet();clearDay();buildDay(readLocal(k),animate);renderHeader();upd();setInfo();liveUI();drawFab();onDayChange();
+if(!BK)return;const bk=BK;try{const items=await withTO(bk.getDay(k));if(day!==k||touched||bk!==BK)return;
+if(items){hist[k]=items;if(JSON.stringify(items)!==JSON.stringify(serialize())){clearDay();buildDay(items,false);LS.set(LP+'day.'+k,JSON.stringify(items));upd();setInfo();liveUI()}setSync(bk.label)}
+else if(S.length)cloudWrite(k,serialize());else setSync(bk.label)}catch(e){setSync('Saved on this phone (sync paused)')}}
+function claudeBK(db,id){const c=db.collection("data/users/"+id);return{kind:'claude',label:'Saved to your Claude account',
+async getDay(k){const s=await c.doc("day-"+k).get();return s.exists&&Array.isArray(s.data().items)?s.data().items.filter(valid):null},
+setDay(k,items){return c.doc("day-"+k).set({items,updated:Date.now()})},
+async getTiming(){const s=await c.doc("state").get();return s.exists?s.data().timing:null},
+setTiming(t){return c.doc("state").set({timing:t,updated:Date.now()})},
+async listDays(){const q=await c.limit(1000).get();const o={};q.docs.forEach(s=>{if(s.id.startsWith('day-')){const d=s.data();if(d&&Array.isArray(d.items))o[s.id.slice(4)]=d.items.filter(valid)}});return o}}}
+function fireBK(){const u=()=>'users/'+FB.uid;return{kind:'fire',label:'Synced to your ROOSTER account',
+async getDay(k){const d=await FB.get(u()+'/days/'+k);return d&&Array.isArray(d.items)?d.items.filter(valid):null},
+setDay(k,items){return FB.set(u()+'/days/'+k,{items,updated:Date.now()})},
+async getTiming(){const d=await FB.get(u()+'/state/timing');return d?d.timing:null},
+setTiming(t){return FB.set(u()+'/state/timing',{timing:t,updated:Date.now()})},
+async listDays(){const r=await FB.list(u()+'/days');const o={};r.forEach(({id,data})=>{if(data&&Array.isArray(data.items))o[id]=data.items.filter(valid)});return o}}}
 
 /* ---------- timer ---------- */
 async function toggleTimer(){closeMenu();
@@ -350,7 +393,8 @@ if(ptrs.size>2)return;
 if(menu&&menu.sticky){const hv=hit(q);if(hv&&hv.k==='color')return;if(hv)act(hv);closeMenu();return}
 closeMenu();
 if(Math.hypot(q.x-FX,q.y-FY)<28){toggleTimer();return}
-const n=near(q);if(n.d>TW/2+2)return;const x=at(n.m);if(!x)return;
+const n=near(q);if(n.d>TW/2+2)return;const x=at(n.m);
+if(!x){const r=reqIn.find(r=>r.status==='pending'&&r.day===day&&n.m>=r.ts&&n.m<=r.ts+r.m);if(r)openReview(r.id);return}
 pressed=x;p0=q;mode=null;grab=n.m-x.ts;cap(e);clearTimeout(hold);
 hold=setTimeout(()=>{if(pressed&&!mode){buzz();menu={x:p0.x,y:p0.y,seg:pressed,hover:null,colorOpen:false};drawMenu()}},450)});
 svg.addEventListener('pointermove',e=>{const q=pt(e);if(ptrs.has(e.pointerId))ptrs.set(e.pointerId,q);
@@ -386,17 +430,18 @@ const hhmm=m=>{m=Math.max(0,Math.min(Math.round(m),1439));return String(Math.flo
 const parseT=s=>{if(!/^\d\d:\d\d/.test(s||''))return NaN;return +s.slice(0,2)*60+ +s.slice(3,5)};
 $('sw').innerHTML=P.map((c,i)=>`<button data-c="${i}" aria-label="Color ${i+1}" style="background:${c[0]}"></button>`).join('');
 $('sw').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{sh.c=+b.dataset.c;renderSheet()}));
-function renderSheet(){$('pT').style.display=sh.tab==='t'?'flex':'none';$('pD').style.display=sh.tab==='d'?'flex':'none';
+function renderSheet(){const rq=sh.kind==='req';$('tabs').style.display=rq?'none':'flex';$('sw').style.display=rq?'none':'flex';$('shSave').textContent=rq?'Send request':'Save';
+$('pT').style.display=sh.tab==='t'?'flex':'none';$('pD').style.display=sh.tab==='d'?'flex':'none';
 $('tabT').className=sh.tab==='t'?'on':'';$('tabD').className=sh.tab==='d'?'on':'';
 $('sw').querySelectorAll('button').forEach(b=>{const i=+b.dataset.c;b.style.borderColor=i===sh.c?P[i][1]:'transparent'});
-const base=sh.tab==='t'?'Setting exact times locks it in place.':(sh.x&&sh.x.lk?'Changes the length. It still starts at '+fmt(sh.x.ts)+'.':'Without set times it slides into the first open gap, and later activities shift to make room.');
+const base=rq?'Open on '+sh.req.f.name+'\u2019s day from '+fmt(sh.req.g0)+' to '+fmt(sh.req.g1)+'. They\u2019ll see it in your color and can accept or decline.':sh.tab==='t'?'Setting exact times locks it in place.':(sh.x&&sh.x.lk?'Changes the length. It still starts at '+fmt(sh.x.ts)+'.':'Without set times it slides into the first open gap, and later activities shift to make room.');
 $('shHint').textContent=(sh.filled?'Filled in your usual '+dur(sh.filled.avg)+' for '+sh.filled.n+' (average of '+sh.filled.cnt+'). Change it if today is different. ':'')+base}
-function openSheet(kind,x){const now=Math.round(nowMin()/5)*5;
-sh={kind,x:x||null,c:x?x.c:5,tab:kind==='add'?'t':'d',durEdited:false,filled:null};
-$('shT').textContent=kind==='add'?'New activity':'Edit '+x.n;$('inN').value=x?x.n:'';
-const s=x?x.ts:(day===todayKey()?Math.min(now,1380):540),m=x?x.m:60;
+function openSheet(kind,x,ctx){const now=Math.round(nowMin()/5)*5;
+sh={kind,x:x||null,c:x?x.c:(kind==='req'&&me?me.c:5),tab:kind==='edit'?'d':'t',durEdited:false,filled:null,req:ctx||null};
+$('shT').textContent=kind==='add'?'New activity':kind==='req'?'Ask '+ctx.f.name+' for a spot':'Edit '+x.n;$('inN').value=x?x.n:'';
+const s=x?x.ts:kind==='req'?ctx.start:(day===todayKey()?Math.min(now,1380):540),m=x?x.m:kind==='req'?Math.min(60,ctx.g1-ctx.start):60;
 $('inS').value=hhmm(s);$('inE').value=hhmm(Math.min(s+m,1439));$('inH').value=Math.floor(m/60);$('inM').value=m%60;
-$('shErr').textContent='';renderSheet();renderSug();$('back').style.display='flex';if(kind==='add')setTimeout(()=>{try{$('inN').focus()}catch(_){}},50)}
+$('shErr').textContent='';renderSheet();renderSug();$('back').style.display='flex';if(kind!=='edit')setTimeout(()=>{try{$('inN').focus()}catch(_){}},50)}
 function closeSheet(){$('back').style.display='none';sh=null}
 function renderSug(){const el=$('sug');if(!sh){el.style.display='none';return}const q=$('inN').value.trim().toLowerCase();
 let list=stats();if(q)list=list.filter(s=>s.n.toLowerCase().includes(q)&&s.n.toLowerCase()!==q);if(sh.kind==='edit'&&!q)list=[];list=list.slice(0,5);
@@ -410,7 +455,7 @@ $('shX').addEventListener('click',closeSheet);$('back').addEventListener('click'
 ['inN','inH','inM','inS','inE'].forEach(id=>$(id).addEventListener('input',()=>{$('shErr').textContent=''}));
 ['inH','inM','inE'].forEach(id=>$(id).addEventListener('input',()=>{if(sh){sh.durEdited=true;if(sh.filled){sh.filled=null;renderSheet()}}}));
 $('inS').addEventListener('input',()=>{if(sh&&sh.filled&&!sh.durEdited){const st=parseT($('inS').value);if(!isNaN(st))$('inE').value=hhmm(Math.min(st+sh.filled.avg,1439))}});
-$('inN').addEventListener('input',()=>{if(!sh)return;const q=$('inN').value.trim().toLowerCase();if(sh.kind==='add'&&q){const ex=stats().find(s=>s.n.toLowerCase()===q);if(ex&&!sh.durEdited&&sh.filled!==ex){sh.c=ex.c;fillDur(ex)}}renderSug()});
+$('inN').addEventListener('input',()=>{if(!sh)return;const q=$('inN').value.trim().toLowerCase();if(sh.kind!=='edit'&&q){const ex=stats().find(s=>s.n.toLowerCase()===q);if(ex&&!sh.durEdited&&sh.filled!==ex){sh.c=ex.c;fillDur(ex)}}renderSug()});
 $('inN').addEventListener('focus',()=>{if(sh)renderSug()});
 $('shSave').addEventListener('click',()=>{const err=s=>{$('shErr').textContent=s};const name=$('inN').value.trim();if(!name){err('Give it a name.');return}
 let ts=null,m;
@@ -418,6 +463,8 @@ if(sh.tab==='d'){const h=$('inH').value===''?0:+$('inH').value,mm=$('inM').value
 if(!Number.isFinite(h)||!Number.isFinite(mm)||h<0||mm<0){err('Enter hours and minutes as numbers.');return}m=Math.round(h*60+mm);if(m<5){err('Make it at least 5 minutes long.');return}if(m>1440){err('An activity can\u2019t be longer than 24 hours.');return}}
 else{const s=parseT($('inS').value);let e=parseT($('inE').value);if(isNaN(s)||isNaN(e)){err('Enter both a start and an end time.');return}if(e===0)e=1440;if(e===1439)e=1440;
 if(e<=s){err('The end time has to be after the start time.');return}if(e-s<5){err('Make it at least 5 minutes long.');return}ts=s;m=e-s}
+if(sh.kind==='req'){const R=sh.req;if(ts<R.g0||ts+m>R.g1){err('That runs into something on '+R.f.name+'\u2019s day. Their open time is '+fmt(R.g0)+' to '+fmt(R.g1)+'.');return}
+const btn=$('shSave');btn.disabled=true;sendReq(R.f,name,ts,m).then(()=>{btn.disabled=false;closeSheet();msg('Sent to '+R.f.name+'. You\u2019ll hear back here.')}).catch(()=>{btn.disabled=false;err('Couldn\u2019t send it. Check your connection and try again.')});return}
 if(sh.kind==='add'){const x=mk({n:name,m,c:sh.c,lk:ts!==null,ts:ts||0});S.push(x);if(!layout()){S=S.filter(z=>z!==x);unmk(x);layout();err(ts!==null?'Those times overlap a locked activity.':'There isn\u2019t room for that in this day.');return}x.cs=x.ts;x.cm=0;sel=x}
 else{const x=sh.x;if(!S.includes(x)){closeSheet();return}const o={ts:x.ts,m:x.m,lk:x.lk};x.m=m;if(ts!==null){x.ts=ts;x.lk=true}
 if(!layout()){Object.assign(x,o);layout();err(ts!==null?'Those times overlap another locked activity.':'That doesn\u2019t fit. It would overlap a locked activity or run past midnight.');return}x.n=name;x.c=sh.c;paint(x);sel=x}
@@ -430,19 +477,232 @@ $('dayLabel').parentElement.addEventListener('click',()=>{if(day!==todayKey())lo
 $('addBtn').addEventListener('click',()=>{closeMenu();openSheet('add')});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderHeader();tickTimer()}});
 
+/* ---------- Firebase ---------- */
+const FBV='10.12.2',FBB='https://www.gstatic.com/firebasejs/'+FBV+'/';
+const FCFG={apiKey:"AIzaSyBROwV_BnS1apUh3OyoP09zTRWKV_RTo4s",authDomain:"rooster-50ce9.firebaseapp.com",projectId:"rooster-50ce9",storageBucket:"rooster-50ce9.firebasestorage.app",messagingSenderId:"926165565661",appId:"1:926165565661:web:c71bb709ded05f61e69b34"};
+// VAPID key for web push, kept for when notifications are sent from a server:
+// BBgVdpIsxD7_ZZI6NMkB8o0abp7UQZlZ91QD_zEggQx94Mw9ZxtfiuoJPTHOU5VR8VLqG6_jasPdo5w1q-CIIww
+async function fireFB(){const [A,AU,F]=await Promise.all([import(FBB+'firebase-app.js'),import(FBB+'firebase-auth.js'),import(FBB+'firebase-firestore.js')]);
+const app=A.initializeApp(FCFG),auth=AU.getAuth(app),fs=F.getFirestore(app);
+const d=p=>F.doc(fs,p),c=p=>F.collection(fs,p),rows=q=>q.docs.map(s=>({id:s.id,...s.data()}));
+AU.getRedirectResult(auth).catch(e=>{authErr=authMsg(e);renderPanel()});
+const fb={uid:null,
+onAuth(cb){AU.onAuthStateChanged(auth,u=>{fb.uid=u?u.uid:null;cb(u?{uid:u.uid,name:u.displayName||'',email:u.email||''}:null)})},
+async google(){const p=new AU.GoogleAuthProvider();try{await AU.signInWithPopup(auth,p)}catch(e){const c=e&&e.code;if(c==='auth/popup-blocked'||c==='auth/operation-not-supported-in-this-environment')await AU.signInWithRedirect(auth,p);else throw e}},
+emailIn:(e,p)=>AU.signInWithEmailAndPassword(auth,e,p),
+emailUp:(e,p)=>AU.createUserWithEmailAndPassword(auth,e,p),
+out:()=>AU.signOut(auth),
+async get(p){const s=await F.getDoc(d(p));return s.exists()?s.data():null},
+set:(p,v,merge)=>F.setDoc(d(p),v,merge?{merge:true}:{}),
+update:(p,v)=>F.updateDoc(d(p),v),
+del:p=>F.deleteDoc(d(p)),
+async list(cp){const q=await F.getDocs(c(cp));return q.docs.map(s=>({id:s.id,data:s.data()}))},
+add:async(cp,v)=>(await F.addDoc(c(cp),v)).id,
+listen:(p,cb)=>F.onSnapshot(d(p),s=>cb(s.exists()?s.data():null),e=>cb(null,e)),
+listenColl:(cp,cb)=>F.onSnapshot(c(cp),q=>cb(rows(q)),e=>cb(null,e)),
+listenWhere:(cp,f,v,cb)=>F.onSnapshot(F.query(c(cp),F.where(f,'==',v)),q=>cb(rows(q)),e=>cb(null,e))};
+return fb}
+// Test stand-in (only on localhost with ?mock=Name): an in-memory "Firestore" shared by tabs through localStorage.
+function mockFB(name){const K='mockfs',rd=()=>{try{return JSON.parse(localStorage.getItem(K)||'{}')}catch(_){return{}}},ls=[];
+const notify=()=>ls.slice().forEach(f=>f());addEventListener('storage',e=>{if(e.key===K)notify()});
+const wr=f=>{const s=rd();f(s);localStorage.setItem(K,JSON.stringify(s));setTimeout(notify,0)};
+const kids=(s,cp)=>Object.keys(s).filter(k=>k.startsWith(cp+'/')&&k.split('/').length===cp.split('/').length+1);
+const sub=f=>{ls.push(f);setTimeout(f,0);return()=>{const i=ls.indexOf(f);if(i>=0)ls.splice(i,1)}};
+const fb={uid:null,
+onAuth(cb){setTimeout(()=>{fb.uid='u_'+name.toLowerCase();cb({uid:fb.uid,name,email:name.toLowerCase()+'@test.dev'})},30)},
+google:async()=>{},emailIn:async()=>{},emailUp:async()=>{},out:async()=>{},
+async get(p){const v=rd()[p];return v?clean(v):null},
+async set(p,v,merge){wr(s=>{s[p]=merge?{...(s[p]||{}),...v}:v})},
+async update(p,v){if(!rd()[p])throw new Error('no doc');wr(s=>{s[p]={...s[p],...v}})},
+async del(p){wr(s=>{delete s[p]})},
+async list(cp){const s=rd();return kids(s,cp).map(k=>({id:k.slice(cp.length+1),data:s[k]}))},
+async add(cp,v){const id=newId();wr(s=>{s[cp+'/'+id]=v});return id},
+listen:(p,cb)=>sub(()=>{const v=rd()[p];cb(v?clean(v):null)}),
+listenColl:(cp,cb)=>sub(()=>{const s=rd();cb(kids(s,cp).map(k=>({id:k.slice(cp.length+1),...s[k]})))}),
+listenWhere:(cp,f,v,cb)=>sub(()=>{const s=rd();cb(kids(s,cp).filter(k=>s[k][f]===v).map(k=>({id:k.slice(cp.length+1),...s[k]})))})};
+return fb}
+function authMsg(e){const c=(e&&e.code)||'';const m={'auth/operation-not-allowed':'This sign-in method isn’t turned on in Firebase yet.','auth/invalid-credential':'That email and password don’t match.','auth/wrong-password':'That email and password don’t match.','auth/user-not-found':'No account with that email yet. Tap Create account.','auth/email-already-in-use':'That email already has an account. Tap Sign in.','auth/weak-password':'Use at least 6 characters for the password.','auth/invalid-email':'That email doesn’t look right.','auth/unauthorized-domain':'This site isn’t on Firebase’s Authorized domains list yet.','auth/popup-closed-by-user':'','auth/cancelled-popup-request':'','auth/network-request-failed':'No connection. Try again.','auth/too-many-requests':'Too many tries. Wait a minute and try again.'};return c in m?m[c]:'Sign-in didn’t work ('+(c||(e&&e.message)||'unknown error')+').'}
+
+/* ---------- friends and spot requests ---------- */
+let friendsLoaded=false,FB=null,me=null,friends=[],viewF=null,fday={},reqIn=[],reqOut=[],unsubs=[],dayUnsubs=[],seenReq=new Set(),handled=new Set(),pendingJoin=null,authErr='',fireState='off',panel=null,myInvite=null,confirmRm=null,inited=false;
+const fcol=c=>P[c]||P[5];
+function stopAll(){unsubs.concat(dayUnsubs).forEach(f=>{try{f()}catch(_){}});unsubs=[];dayUnsubs=[]}
+function curFriend(){return friends.find(f=>f.uid===viewF)||null}
+function isLand(){return innerWidth>innerHeight&&innerWidth>=520}
+function shownF(){return isLand()?(me?(curFriend()||friends[0]||null):null):curFriend()}
+function dayLbl(k){if(k===todayKey())return'Today';const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}
+function applyMode(){const land=isLand(),f=shownF();document.body.classList.toggle('land',land);
+document.body.classList.toggle('duo',!!(land&&f));document.body.classList.toggle('vf',!!(!land&&f));
+$('mcap').textContent=me?me.name:'You';$('fcap').textContent=f?f.name+(friends.length>1?'  ⇄':''):'';
+$('bannerTxt').textContent=f&&!land?'Viewing '+f.name+'’s day. Tap an open spot to ask for it.':'';renderFriend()}
+addEventListener('resize',applyMode);addEventListener('orientationchange',()=>setTimeout(applyMode,250));
+const TRACK_D='M'+X.map((x,i)=>x.toFixed(1)+' '+Y[i].toFixed(1)).join('L');
+const NOON=`<line x1="0" x2="300" y1="270" y2="270" stroke-width="1" stroke-dasharray="3 4" style="stroke:var(--line2)"/><rect x="3" y="252" width="26" height="15" rx="7.5" stroke-width="1" style="fill:var(--panel);stroke:var(--line2)"/><text x="16" y="259.5" text-anchor="middle" dominant-baseline="central" font-size="10" style="fill:var(--text2)">AM</text><rect x="3" y="273" width="26" height="15" rx="7.5" stroke-width="1" style="fill:var(--panel);stroke:var(--line2)"/><text x="16" y="280.5" text-anchor="middle" dominant-baseline="central" font-size="10" style="fill:var(--text2)">PM</text>`;
+function labelSVG(o){const L=labelFit(o.ts+.5,o.ts+o.m-.5,o.n,o.m,o.lk);if(!L)return'';const c=fcol(o.c)[1];
+return(L.fits?`<text x="${L.ax}" y="${L.ay}" font-size="13" font-weight="600" text-anchor="middle" dominant-baseline="central" fill="${c}">${esc(L.nm)}</text><text x="${L.dx}" y="${L.dy}" font-size="11" text-anchor="middle" dominant-baseline="central" fill="${c}">${L.d}</text>`:'')+(L.lock?`<g transform="translate(${L.lock.x},${L.lock.y})">${lockSVG(c)}</g>`:'')}
+// Requests not yet answered draw as see-through tubes with a dashed center line, in the asker's color.
+function ghostSVG(list){return list.map(o=>{const d=pth(o.ts+.5,o.ts+o.m-.5,true),c=fcol(o.c);if(!d)return'';const L=labelFit(o.ts+.5,o.ts+o.m-.5,o.n,o.m,false);
+return`<path d="${d}" fill="none" stroke="${c[0]}" stroke-opacity=".4" stroke-width="${TW}" stroke-linejoin="round"/><path d="${d}" fill="none" stroke="${c[1]}" stroke-opacity=".75" stroke-width="1.6" stroke-dasharray="5 5"/>`+(L?`<text x="${L.dx}" y="${(L.ay+L.dy)/2}" font-size="12" font-weight="600" text-anchor="middle" dominant-baseline="central" fill="${c[1]}">${esc(L.fits?L.nm:o.n.slice(0,1))}</text>`:'')}).join('')}
+function coilSVG(items,ghosts){let h=`<defs><filter id="goof" filterUnits="userSpaceOnUse" x="-20" y="-20" width="340" height="580"><feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b"/><feColorMatrix in="b" mode="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 20 -9"/></filter></defs><path d="${TRACK_D}" fill="none" stroke-width="42" stroke-linecap="round" style="stroke:var(--track)"/>`;
+h+=`<g filter="url(#goof)">`+items.map(o=>{const d=pth(o.ts+.5,o.ts+o.m-.5,true);return d?`<path d="${d}" fill="none" stroke="${fcol(o.c)[0]}" stroke-width="${TW}" stroke-linejoin="round"/>`:''}).join('')+'</g>';
+return h+ghostSVG(ghosts)+NOON+items.map(labelSVG).join('')+tagsSVG(items.flatMap(o=>[o.ts,o.ts+o.m]),day===todayKey()?1:0)}
+function myAsks(fid){return reqOut.filter(r=>r.to===fid&&r.day===day&&r.status==='pending')}
+function renderFriend(){const f=shownF(),el=$('fbox');if(!f){el.innerHTML='';return}
+el.innerHTML=coilSVG(fday[f.uid]||[],myAsks(f.uid).map(r=>({ts:r.ts,m:r.m,c:me?me.c:5,n:r.n+'?'})))}
+function renderReqOverlay(){ol.innerHTML=ghostSVG(reqIn.filter(r=>r.status==='pending'&&r.day===day).map(r=>({ts:r.ts,m:r.m,c:r.fc,n:r.fromName+': '+r.n+'?'})))}
+function updBadge(){const n=reqIn.filter(r=>r.status==='pending').length,b=$('badge');b.textContent=n;b.style.display=n?'flex':'none'}
+function subDays(){dayUnsubs.forEach(f=>{try{f()}catch(_){}});dayUnsubs=[];if(!FB||!me)return;const k=day;
+friends.forEach(f=>{dayUnsubs.push(FB.listen(`users/${f.uid}/days/${k}`,(d,e)=>{if(k!==day)return;fday[f.uid]=d&&Array.isArray(d.items)?d.items.filter(valid):[];renderFriend()}))})}
+function onDayChange(){if(!inited)return;subDays();renderReqOverlay();applyMode()}
+
+function startFriends(){const uid=me.uid;
+unsubs.push(FB.listenColl(`users/${uid}/friends`,async(list,e)=>{if(!list)return;
+const out=await Promise.all(list.map(async f=>{let p=null;try{p=await FB.get('users/'+f.id)}catch(_){}return{uid:f.id,name:(p&&p.name)||f.name||'Friend',c:(p&&Number.isInteger(p.c))?p.c:(Number.isInteger(f.c)?f.c:0)}}));
+const had=new Set(friends.map(f=>f.uid));friends=out.sort((a,b)=>a.name.localeCompare(b.name));
+if(friendsLoaded)friends.filter(f=>!had.has(f.uid)).forEach(f=>msg('You and '+f.name+' are now connected.'));
+friendsLoaded=true;if(viewF&&!curFriend())viewF=null;subDays();applyMode();renderPanel()}));
+unsubs.push(FB.listenWhere('requests','to',uid,(list)=>{if(!list)return;reqIn=list;
+const fresh=list.filter(r=>r.status==='pending'&&!seenReq.has(r.id));fresh.forEach(r=>seenReq.add(r.id));
+if(fresh.length){const r=fresh[0];buzz();msg(r.fromName+' asked for '+r.n+' at '+fmt(r.ts)+(r.day!==day?' ('+dayLbl(r.day)+')':'')+'.','View',()=>openReview(r.id))}
+updBadge();renderReqOverlay();renderPanel()}));
+unsubs.push(FB.listenWhere('requests','from',uid,(list)=>{if(!list)return;reqOut=list;
+list.filter(r=>r.status!=='pending'&&!r.fromSeen&&!handled.has(r.id)).forEach(async r=>{handled.add(r.id);
+if(r.status==='accepted'){const ok=await applyAccepted(r);msg(r.toName+' accepted '+r.n+' ('+dayLbl(r.day)+' '+fmt(r.ts)+').'+(ok?' It’s on your day too.':' It overlaps something on your day, so it wasn’t added.'))}
+else{buzz();msg(r.toName+' declined '+r.n+' ('+dayLbl(r.day)+' '+fmt(r.ts)+').')}
+try{await FB.update('requests/'+r.id,{fromSeen:true,updated:Date.now()})}catch(_){}});
+renderFriend();renderPanel()}))}
+async function applyAccepted(r){const item={id:'rq'+r.id,n:r.n,m:r.m,ts:r.ts,lk:true,c:me.c,by:{uid:r.to,name:r.toName},req:r.id};
+if(r.day===day){if(S.some(x=>x.id===item.id))return true;const x=mk(item);S.push(x);if(!layout()){S=S.filter(z=>z!==x);unmk(x);layout();return false}x.cs=x.ts;x.cm=x.m;touched=true;save();upd();return true}
+let items=readLocal(r.day);if(BK){try{const rem=await withTO(BK.getDay(r.day));if(rem)items=rem}catch(_){}}
+if(items.some(o=>o.id===item.id))return true;
+const busy=items.filter(o=>o.lk).some(o=>o.ts<item.ts+item.m&&item.ts<o.ts+o.m);if(busy)return false;
+items.push(item);hist[r.day]=items;LS.set(LP+'day.'+r.day,JSON.stringify(items));if(BK){try{await withTO(BK.setDay(r.day,clean(items)))}catch(_){}}return true}
+async function acceptReq(id){const r=reqIn.find(q=>q.id===id);if(!r||r.status!=='pending')return;closeP();
+if(r.day!==day)await loadDay(r.day,false);
+const x=mk({id:'rq'+r.id,n:r.n,m:r.m,ts:r.ts,lk:true,c:r.fc,by:{uid:r.from,name:r.fromName},req:r.id});S.push(x);
+if(!layout()){S=S.filter(z=>z!==x);unmk(x);layout();const b=S.find(s=>s.lk&&s.ts<r.ts+r.m&&r.ts<s.ts+s.m);msg('It overlaps '+(b?b.n:'something locked')+' on your day. Move that first, then accept.');return}
+x.cs=x.ts;x.cm=x.m;sel=x;touched=true;save();upd();setInfo();
+try{await FB.update('requests/'+id,{status:'accepted',updated:Date.now()});msg('Added. '+r.fromName+' will see it on their day too.')}
+catch(e){S=S.filter(z=>z!==x);unmk(x);layout();save();upd();msg('Couldn’t accept right now. Check your connection and try again.')}}
+async function declineReq(id){const r=reqIn.find(q=>q.id===id);if(!r)return;closeP();
+try{await FB.update('requests/'+id,{status:'declined',updated:Date.now()});msg('Declined. '+r.fromName+' will be told.')}catch(e){msg('Couldn’t decline right now. Try again.')}}
+async function sendReq(f,name,ts,m){await FB.add('requests',{from:me.uid,fromName:me.name,fc:me.c,to:f.uid,toName:f.name,day,ts,m,n:name,status:'pending',fromSeen:false,created:Date.now(),updated:Date.now()})}
+const CODE_AB='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+async function createInvite(){let code='';const r=new Uint32Array(6);crypto.getRandomValues(r);r.forEach(v=>code+=CODE_AB[v%CODE_AB.length]);
+await FB.set('invites/'+code,{from:me.uid,name:me.name,c:me.c,created:Date.now()});myInvite={code,created:Date.now()};LS.set(LP+'invite',JSON.stringify(myInvite))}
+async function joinCode(code){code=(code||'').trim().toUpperCase();if(!/^[A-Z0-9]{6}$/.test(code))throw new Error('Codes are 6 letters and numbers.');
+const inv=await FB.get('invites/'+code);if(!inv)throw new Error('That code doesn’t exist. Check it and try again.');
+if(Date.now()-inv.created>7*864e5)throw new Error('That code has expired. Ask for a new one.');
+if(inv.from===me.uid)throw new Error('That’s your own code. Send it to the other person.');
+if(friends.some(f=>f.uid===inv.from))throw new Error('You’re already connected with '+inv.name+'.');
+await FB.set(`users/${me.uid}/friends/${inv.from}`,{name:inv.name,c:inv.c,since:Date.now()});
+await FB.set(`users/${inv.from}/friends/${me.uid}`,{name:me.name,c:me.c,since:Date.now(),invite:code});
+pendingJoin=null;try{history.replaceState(null,'',location.pathname+location.search)}catch(_){}return inv.name}
+function migrateLegacy(uid){if(LS.get('rooster.migrated'))return;try{const pre='rooster.day.',np='rooster.u.'+uid+'.day.';const ks=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith(pre))ks.push(k)}
+ks.forEach(k=>{const nk=np+k.slice(pre.length);if(!LS.get(nk))LS.set(nk,LS.get(k))});const tm=LS.get('rooster.timing');if(tm&&!LS.get('rooster.u.'+uid+'.timing'))LS.set('rooster.u.'+uid+'.timing',tm)}catch(_){}LS.set('rooster.migrated',uid)}
+function readTimingLocal(){try{const tm=JSON.parse(LS.get(LP+'timing')||'null');return tm&&tm.id&&tm.t0&&tm.day?tm:null}catch(_){return null}}
+async function onAuth(u){stopAll();friendsLoaded=false;friends=[];reqIn=[];reqOut=[];fday={};viewF=null;seenReq=new Set();handled=new Set();confirmRm=null;
+if(u){fireState='in';const uid=u.uid;migrateLegacy(uid);LP='rooster.u.'+uid+'.';
+let p=null;try{p=await withTO(FB.get('users/'+uid))}catch(_){}
+me={uid,name:(p&&p.name)||u.name||(u.email||'').split('@')[0]||'Me',c:(p&&Number.isInteger(p.c))?p.c:Math.floor(Math.random()*P.length),email:u.email||''};
+if(!p)FB.set('users/'+uid,{name:me.name,c:me.c,updated:Date.now()}).catch(()=>{});
+BK=fireBK();loadHistLocal();timing=readTimingLocal();
+try{const t2=await withTO(BK.getTiming());if(t2&&t2.id&&t2.t0&&!timing){timing=t2;LS.set(LP+'timing',JSON.stringify(t2))}}catch(_){}
+try{myInvite=JSON.parse(LS.get(LP+'invite')||'null')}catch(_){myInvite=null}
+await loadDay(day,false);startFriends();
+(async()=>{try{const all=await withTO(BK.listDays(),20000);const local={...hist};Object.assign(hist,all);
+for(const k of Object.keys(local))if(!all[k]&&local[k].length&&k!==day){try{await withTO(BK.setDay(k,clean(local[k])))}catch(_){}}}catch(_){}})();
+if(pendingJoin)openFriends()}
+else{fireState=FB?'out':fireState;me=null;BK=null;LP='rooster.';loadHistLocal();timing=readTimingLocal();await loadDay(day,false)}
+updBadge();renderReqOverlay();applyMode();renderPanel()}
+
+/* ---------- friends panel ---------- */
+function closeP(){$('back2').style.display='none';panel=null;confirmRm=null}
+function openFriends(){panel={kind:'friends'};renderPanel();$('back2').style.display='flex'}
+function openReview(id){panel={kind:'review',id};renderPanel();$('back2').style.display='flex'}
+function reqRow(r,inc){const c=fcol(inc?r.fc:(me?me.c:5));const when=dayLbl(r.day)+' · '+fmt(r.ts)+'–'+fmt(r.ts+r.m);
+const st=r.status==='pending'?(inc?'':'Waiting'):r.status==='accepted'?'Accepted':'Declined';
+return`<div class="li"><i class="dot" style="background:${c[0]}"></i><div style="flex:1;min-width:0">${inc?'<b>'+esc(r.fromName)+'</b>: ':'To <b>'+esc(r.toName)+'</b>: '}${esc(r.n)}<br><small>${when}${st?' · '+st:''}</small></div>`+
+(inc&&r.status==='pending'?`<button class="btn2" data-a="decline" data-id="${r.id}">Decline</button><button class="btn2 pri" data-a="accept" data-id="${r.id}">Accept</button>`:'')+
+(!inc&&r.status==='pending'?`<button class="btn2" data-a="cancel" data-id="${r.id}">Cancel</button>`:'')+'</div>'}
+function renderPanel(){if(!panel)return;const el=$('sheet2');const keep={};['em','pw','joinIn','myName'].forEach(id=>{const i=$(id);if(i)keep[id]=i.value});
+let h=`<div class="row" style="justify-content:space-between;margin-bottom:4px"><h3>${panel.kind==='review'?'Spot request':'Friends and sharing'}</h3><button class="x" data-a="close" aria-label="Close">&times;</button></div>`;
+if(panel.kind==='review'){const r=reqIn.find(q=>q.id===panel.id);
+if(!r)h+=`<p class="muted">This request was cancelled.</p>`;
+else{h+=`<div class="li" style="border:none"><i class="dot" style="background:${fcol(r.fc)[0]}"></i><div style="flex:1"><b>${esc(r.fromName)}</b> wants to add <b>${esc(r.n)}</b> to your day<br><small>${dayLbl(r.day)} · ${fmt(r.ts)}–${fmt(r.ts+r.m)} (${dur(r.m)})</small></div></div>`;
+h+=r.status==='pending'?`<div class="row" style="margin-top:10px"><button class="btn2" data-a="decline" data-id="${r.id}" style="flex:1;height:46px">Decline</button><button class="btn2 pri" data-a="accept" data-id="${r.id}" style="flex:1;height:46px">Accept</button></div><p class="hint">Accept and it’s locked onto both your days. Decline and ${esc(r.fromName)} gets told.</p>`:`<p class="muted">You ${r.status} this one.</p>`}}
+else if(fireState==='unavail'){h+=`<p class="muted">Sharing with friends works in the version on your GitHub site. Open it there:</p><p><a href="https://pablokm.github.io/ISLANAUT/apps/rooster/">pablokm.github.io/ISLANAUT/apps/rooster</a></p>`}
+else if(fireState==='loading'||fireState==='off'){h+=`<p class="muted">Connecting…</p>`}
+else if(fireState==='fail'){h+=`<p class="muted">Couldn’t reach the sharing service. Check your connection, then try again.</p><button class="save" data-a="retry">Try again</button>`}
+else if(fireState==='out'){h+=`<p class="muted">Sign in to sync your days across devices and share your schedule with people you choose.</p>${pendingJoin?'<p class="muted"><b>Sign in to accept your invite.</b></p>':''}
+<button class="save" data-a="google">Continue with Google</button><div class="sec">Or use email</div>
+<input id="em" type="email" autocomplete="email" placeholder="you@example.com" style="width:100%;margin-bottom:8px"><input id="pw" type="password" autocomplete="current-password" placeholder="Password (6 or more characters)" style="width:100%">
+<div class="row" style="margin-top:8px"><button class="btn2 pri" data-a="emIn" style="flex:1;height:44px">Sign in</button><button class="btn2" data-a="emUp" style="flex:1;height:44px">Create account</button></div>
+<div class="err" id="authErr">${esc(authErr)}</div><p class="hint">On iPhone, if Google sign-in doesn’t open from your home-screen app, use email instead.</p>`}
+else if(me){
+if(pendingJoin)h+=`<div class="sec">Invite</div><div class="li" style="border:none"><div style="flex:1">Join with code <b>${esc(pendingJoin)}</b>?</div><button class="btn2 pri" data-a="joinPending">Join</button></div>`;
+const inc=reqIn.filter(r=>r.status==='pending').sort((a,b)=>a.day.localeCompare(b.day)||a.ts-b.ts);
+h+=`<div class="sec">Requests for you</div>`+(inc.length?inc.map(r=>reqRow(r,true)).join(''):`<p class="muted">None right now.</p>`);
+const out=reqOut.filter(r=>r.day>=todayKey()).sort((a,b)=>b.created-a.created).slice(0,8);
+if(out.length)h+=`<div class="sec">Your requests</div>`+out.map(r=>reqRow(r,false)).join('');
+h+=`<div class="sec">Friends</div>`+(friends.length?friends.map(f=>`<div class="li"><i class="dot" style="background:${fcol(f.c)[0]}"></i><div style="flex:1">${esc(f.name)}</div>`+(confirmRm===f.uid?`<button class="btn2 dng" data-a="rmYes" data-u="${f.uid}">Remove?</button><button class="btn2" data-a="rmNo">Keep</button>`:`<button class="btn2" data-a="view" data-u="${f.uid}">View</button><button class="btn2" data-a="rm" data-u="${f.uid}" aria-label="Remove ${esc(f.name)}">&times;</button>`)+'</div>').join('')+`<p class="hint">Turn your phone sideways to see your day next to a friend’s.</p>`:`<p class="muted">No friends yet. Invite someone below.</p>`);
+const inv=myInvite&&Date.now()-myInvite.created<7*864e5?myInvite:null;const link=inv?location.origin+location.pathname+'#join-'+inv.code:'';
+h+=`<div class="sec">Add a friend</div>`+(inv?`<div class="code">${inv.code}</div><div class="row"><input readonly id="invLink" value="${esc(link)}" style="flex:1;font-size:13px"><button class="btn2" data-a="copy">Copy link</button></div><p class="hint">Send them the link or the code. Once they join, you can see each other’s days. It works for 7 days. <button class="btn2" data-a="invite" style="height:28px;font-size:12px">New code</button></p>`:`<button class="btn2 pri" data-a="invite" style="width:100%;height:44px">Create an invite</button>`)+
+`<div class="row" style="margin-top:10px"><input id="joinIn" placeholder="Have a code? Enter it" maxlength="6" autocapitalize="characters" autocomplete="off" style="flex:1;text-transform:uppercase"><button class="btn2 pri" data-a="join">Join</button></div><div class="err" id="frErr"></div>`;
+h+=`<div class="sec">You</div><div class="row"><input id="myName" maxlength="24" value="${esc(me.name)}" aria-label="Your name" style="flex:1"><button class="btn2" data-a="saveName">Save</button></div>
+<div class="sw">${P.map((c,i)=>`<button data-a="myColor" data-c="${i}" aria-label="Your color ${i+1}" style="background:${c[0]};border-color:${i===me.c?c[1]:'transparent'}"></button>`).join('')}</div>
+<p class="hint">Your name and color show on requests you send.<br>Signed in${me.email?' as '+esc(me.email):''}. <button class="btn2" data-a="signout" style="height:28px;font-size:12px">Sign out</button></p>`}
+el.innerHTML=h;Object.entries(keep).forEach(([id,v])=>{const i=$(id);if(i)i.value=v})}
+$('back2').addEventListener('click',e=>{if(e.target===$('back2'))closeP()});
+$('sheet2').addEventListener('click',async e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,id=b.dataset.id,u=b.dataset.u;const fe=s=>{const x=$('frErr');if(x)x.textContent=s};
+try{
+if(a==='close')closeP();
+else if(a==='accept')acceptReq(id);else if(a==='decline')declineReq(id);
+else if(a==='cancel'){await FB.del('requests/'+id);msg('Request cancelled.')}
+else if(a==='retry'){location.reload()}
+else if(a==='google'){authErr='';await FB.google()}
+else if(a==='emIn'||a==='emUp'){authErr='';const em=$('em').value.trim(),pw=$('pw').value;if(!em||!pw){authErr='Enter your email and a password.';renderPanel();return}
+if(a==='emIn')await FB.emailIn(em,pw);else await FB.emailUp(em,pw)}
+else if(a==='signout'){await FB.out();closeP()}
+else if(a==='view'){viewF=u;closeP();applyMode()}
+else if(a==='rm'){confirmRm=u;renderPanel()}else if(a==='rmNo'){confirmRm=null;renderPanel()}
+else if(a==='rmYes'){confirmRm=null;await FB.del(`users/${me.uid}/friends/${u}`);await FB.del(`users/${u}/friends/${me.uid}`).catch(()=>{});if(viewF===u)viewF=null;msg('Removed. You can no longer see each other’s days.')}
+else if(a==='invite'){await createInvite();renderPanel()}
+else if(a==='copy'){const i=$('invLink');try{await navigator.clipboard.writeText(i.value);msg('Link copied.')}catch(_){i.select();msg('Press and hold the link to copy it.')}}
+else if(a==='join'||a==='joinPending'){const nm=await joinCode(a==='join'?$('joinIn').value:pendingJoin);msg('You and '+nm+' are now connected.');renderPanel()}
+else if(a==='saveName'){const v=$('myName').value.trim().slice(0,24);if(!v){fe('Enter a name.');return}me.name=v;await FB.set('users/'+me.uid,{name:v,c:me.c,updated:Date.now()},true);msg('Saved.');applyMode();renderPanel()}
+else if(a==='myColor'){me.c=+b.dataset.c;await FB.set('users/'+me.uid,{name:me.name,c:me.c,updated:Date.now()},true);renderPanel()}
+}catch(err){if(a==='google'||a==='emIn'||a==='emUp'){authErr=authMsg(err);renderPanel()}else fe(err&&err.message&&!err.code?err.message:'That didn’t work. Check your connection and try again.')}});
+$('frBtn').addEventListener('click',()=>{closeMenu();openFriends()});
+$('backMine').addEventListener('click',()=>{viewF=null;applyMode()});
+$('fcap').addEventListener('click',()=>{if(friends.length<2)return;const f=shownF(),i=friends.indexOf(f);viewF=friends[(i+1)%friends.length].uid;applyMode()});
+// Tap a friend's coil: an activity shows its time, your waiting request offers cancel, an open spot starts a request.
+$('fbox').addEventListener('click',e=>{const f=shownF();if(!f||!me)return;const sv=$('fbox'),p=sv.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const M=sv.getScreenCTM();if(!M)return;const q=p.matrixTransform(M.inverse()),n=near(q);if(n.d>TW/2+4)return;
+const items=fday[f.uid]||[],it=items.find(o=>n.m>=o.ts&&n.m<=o.ts+o.m);if(it){msg(f.name+': '+it.n+' · '+fmt(it.ts)+'–'+fmt(it.ts+it.m));return}
+const asks=myAsks(f.uid),mine=asks.find(r=>n.m>=r.ts&&n.m<=r.ts+r.m);if(mine){msg('Waiting for '+f.name+' to answer '+mine.n+'.','Cancel it',()=>FB.del('requests/'+mine.id).catch(()=>{}));return}
+let g0=0,g1=1440;[...items.map(o=>[o.ts,o.ts+o.m]),...asks.map(r=>[r.ts,r.ts+r.m])].forEach(([a,b])=>{if(b<=n.m&&b>g0)g0=b;if(a>=n.m&&a<g1)g1=a});
+if(g1-g0<5){msg('That spot is too small to ask for.');return}
+const st=Math.max(g0,Math.min(Math.round(n.m/5)*5,g1-5));openSheet('req',null,{f,g0,g1,start:st})});
+
 /* ---------- logo ---------- */
 let lt=0;function drawLogo(ts){if(ts-lt>70){lt=ts;$('logo').innerHTML=roosterSVG({size:84,scale:0.86,lw:2.4,glow:false,mesh:false,ry:-0.22+0.5*Math.sin(ts/1600),rx:0.2,id:'hl'})}requestAnimationFrame(drawLogo)}
 $('logo').addEventListener('click',()=>{if(day!==todayKey())loadDay(todayKey(),true)});
 if(!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches))requestAnimationFrame(drawLogo);else $('logo').innerHTML=roosterSVG({size:84,scale:0.86,lw:2.4,glow:false,mesh:false,id:'hl'});
 /* ---------- start ---------- */
-try{const tm=JSON.parse(LS.get('rooster.timing')||'null');if(tm&&tm.id&&tm.t0&&tm.day)timing=tm}catch(_){}
-loadDay(day,true);requestAnimationFrame(step);
-(async()=>{try{if(!window.claude||!window.claude.use){return}
-const d=await window.claude.use("db"),u=await window.claude.use("user");const id=u&&u.id?await u.id():null;if(!d||!id)return;db=d;uid=id;setSync('Connecting to your account\u2026');
-try{const s=await withTO(stateRef().get());if(s.exists){const tm=s.data().timing;if(tm&&tm.id&&tm.t0&&tm.day&&!timing){timing=tm;LS.set('rooster.timing',JSON.stringify(tm))}}}catch(_){}
-await loadDay(day,false);
-try{const q=await withTO(db.collection("data/users/"+uid).limit(1000).get(),15000);q.docs.forEach(s=>{if(s.id.startsWith('day-')&&s.id.slice(4)!==day){const d=s.data();if(d&&Array.isArray(d.items))hist[s.id.slice(4)]=d.items.filter(valid)}});if(!sh)liveUI()}catch(_){}
-}catch(_){setSync('Saved on this phone')}})();
+loadHistLocal();timing=readTimingLocal();
+{const m=location.hash.match(/^#join-([A-Za-z0-9]{6})$/);if(m)pendingJoin=m[1].toUpperCase()}
+loadDay(day,true);requestAnimationFrame(step);inited=true;applyMode();
+(async()=>{
+if(window.claude&&window.claude.use){fireState='unavail';try{
+const d=await window.claude.use("db"),u=await window.claude.use("user");const id=u&&u.id?await u.id():null;if(!d||!id)return;BK=claudeBK(d,id);setSync('Connecting to your account…');
+try{const t2=await withTO(BK.getTiming());if(t2&&t2.id&&!timing){timing=t2;LS.set(LP+'timing',JSON.stringify(t2))}}catch(_){}
+await loadDay(day,false);try{Object.assign(hist,await withTO(BK.listDays(),15000));if(!sh)liveUI()}catch(_){}
+}catch(_){setSync('Saved on this phone')}return}
+fireState='loading';
+try{const mk=location.hostname==='localhost'&&new URLSearchParams(location.search).get('mock');FB=mk?mockFB(mk):await withTO(fireFB(),20000);FB.onAuth(u=>{onAuth(u)})}
+catch(e){fireState='fail';FB=null;renderPanel()}
+if(pendingJoin)setTimeout(()=>{if(!me)openFriends()},800);
+})();
 </script>
 </body>
 </html>
