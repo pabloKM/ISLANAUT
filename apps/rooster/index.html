@@ -31,7 +31,7 @@ header{display:flex;align-items:center;gap:6px;padding:2px 2px 4px}
 .col svg{width:100%;flex:1;min-height:0;display:block;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;background:var(--panel);border:0.5px solid var(--line);border-radius:16px}
 #fcol{display:none}
 body.vf #mcol{display:none} body.vf #fcol{display:flex}
-body.duo #fcol{display:flex} body.land .cap{display:block}
+body.duo #fcol{display:flex} body.land .cap{display:flex;align-items:center;justify-content:center;height:42px}
 body.land .sub,body.land #live{display:none}
 body.land .wrap{max-width:none}
 body.land header{padding:0 2px 2px}
@@ -56,6 +56,10 @@ body.vf .banner{display:flex}
 .poke{height:26px;border-radius:13px;border:0.5px solid var(--line2);background:var(--panel);color:var(--text);font-size:12px;font-weight:600;padding:0 10px;margin-left:8px;cursor:pointer;vertical-align:middle}
 .cap{height:auto;min-height:18px;line-height:26px}
 .chips.cwrap{flex-wrap:wrap;overflow:visible}
+.chick{width:38px;height:38px;border-radius:19px;border:0.5px solid var(--line2);background:var(--panel);padding:3px;cursor:pointer;flex:none;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin-left:6px}
+.chick svg{width:100%;height:100%;display:block}
+.chick:active{transform:scale(.92)}
+textarea{font:inherit;font-size:16px;color:var(--text);background:var(--bg);border:0.5px solid var(--line2);border-radius:10px;padding:10px 12px;resize:none;box-sizing:border-box}
 #live{height:76px;flex:none;padding:8px 4px 0;font-size:14px;color:var(--text2);line-height:1.5;overflow:hidden}
 .chips{display:flex;gap:6px;overflow-x:auto;white-space:nowrap;padding-bottom:6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}.chips::-webkit-scrollbar{display:none}
 .chip{flex:none;display:inline-flex;align-items:center;height:36px;font-size:14px;padding:0 14px;border-radius:999px;border:0.5px solid var(--line2);color:var(--text);background:var(--panel);cursor:pointer}
@@ -95,7 +99,7 @@ input[type=time]{flex:1}
 <button class="add" id="addBtn" aria-label="Add an activity">+ Add</button>
 </header>
 <div class="sub"><span id="info">Tap an activity to see its times</span><span id="used"></span></div>
-<div class="banner" id="banner"><span id="bannerTxt" style="flex:1"></span><button class="btn2" id="bannerPoke">Check in</button><button class="btn2" id="backMine">Back to mine</button></div>
+<div class="banner" id="banner"><span id="bannerTxt" style="flex:1"></span><button class="chick" id="bannerPoke" aria-label="Check in"></button><button class="btn2" id="backMine">Back to mine</button></div>
 <div class="stage">
 <div class="col" id="mcol"><div class="cap" id="mcap">You</div>
 <svg id="box" viewBox="0 0 300 540" preserveAspectRatio="xMidYMid meet" aria-label="Your day as a coil of activities">
@@ -118,6 +122,7 @@ input[type=time]{flex:1}
 <div class="row" style="justify-content:space-between;margin-bottom:12px"><h3 id="shT">New activity</h3><button class="x" id="shX" aria-label="Close">&times;</button></div>
 <input id="inN" type="text" maxlength="40" placeholder="Start typing, or pick one below" autocomplete="off" aria-label="Activity name" style="width:100%">
 <div class="sug" id="sug" role="listbox" aria-label="Activities you've logged before"></div>
+<textarea id="inNote" maxlength="200" rows="2" placeholder="Add a note with more details (optional)" aria-label="Note" style="width:100%;margin-top:10px;display:none"></textarea>
 <div class="sw" id="sw"></div>
 <div class="tabs" id="tabs"><button id="tabT">Start and end</button><button id="tabD">Just a length</button></div>
 <div id="pT" class="row"><input id="inS" type="time" step="300" aria-label="Start time"><span style="color:var(--text2)">to</span><input id="inE" type="time" step="300" aria-label="End time"></div>
@@ -390,7 +395,7 @@ function near(q){let bi=0,bd=1e9;for(let i=0;i<NP;i+=2){const d=(X[i]-q.x)**2+(Y
 const at=m=>S.find(s=>m>=s.ts&&m<=s.ts+s.m);
 function endPress(){clearTimeout(hold);hold=null;if(pressed&&mode&&mode!=='pinch'){touched=true;save()}else if(mode==='pinch'){touched=true;save()}pressed=null;mode=null}
 svg.addEventListener('contextmenu',e=>e.preventDefault());
-const cap=e=>{try{svg.setPointerCapture(e.pointerId)}catch(_){}};const ptrs=new Map();let pinch=null;
+let tapM=0;const cap=e=>{try{svg.setPointerCapture(e.pointerId)}catch(_){}};const ptrs=new Map();let pinch=null;
 function applyM(x,nm){if(nm===x.m)return true;if(timing&&timing.id===x.id){msg('This one is being timed live.');return false}const old=x.m;x.m=nm;if(!layout()){x.m=old;layout();msg('No more room for that.');return false}upd();sel=x;setInfo();return true}
 function pdist(){const v=[...ptrs.values()];return Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y)||1}
 function startPinch(x){clearTimeout(hold);closeMenu();if(timing&&timing.id===x.id){msg('This one is being timed live.');return}pinch={x,d0:pdist(),m0:x.m};pressed=x;mode='pinch';sel=x;setInfo()}
@@ -402,7 +407,7 @@ closeMenu();
 if(Math.hypot(q.x-FX,q.y-FY)<28){toggleTimer();return}
 const n=near(q);if(n.d>TW/2+2)return;const x=at(n.m);
 if(!x){const r=reqIn.find(r=>r.status==='pending'&&r.day===day&&n.m>=r.ts&&n.m<=r.ts+r.m);if(r)openReview(r.id);return}
-pressed=x;p0=q;mode=null;grab=n.m-x.ts;cap(e);clearTimeout(hold);
+pressed=x;p0=q;mode=null;grab=n.m-x.ts;tapM=n.m;cap(e);clearTimeout(hold);
 hold=setTimeout(()=>{if(pressed&&!mode){buzz();menu={x:p0.x,y:p0.y,seg:pressed,hover:null,colorOpen:false};drawMenu()}},450)});
 svg.addEventListener('pointermove',e=>{const q=pt(e);if(ptrs.has(e.pointerId))ptrs.set(e.pointerId,q);
 if(mode==='pinch'){if(pinch&&ptrs.size===2){let nm=Math.round(pinch.m0*pdist()/pinch.d0/15)*15;nm=Math.max(15,Math.min(1440,nm));applyM(pinch.x,nm)}return}
@@ -424,7 +429,7 @@ svg.addEventListener('pointerup',e=>{if(lift(e))return;
 if(menu&&!menu.sticky){const hv=menu.hover;
 if(hv==='color'){menu.sticky=true;menu.colorOpen=true;menu.hover=null;drawMenu()}
 else{if(hv==='sw')act({k:'sw',i:menu.hi});else if(hv)act({k:hv});closeMenu()}}
-else if(pressed&&!mode){sel=pressed;setInfo()}
+else if(pressed&&!mode){const rq=reqIn.find(r=>r.status==='pending'&&r.day===day&&tapM>=r.ts&&tapM<=r.ts+r.m);if(rq)openReview(rq.id);else{sel=pressed;setInfo()}}
 endPress()});
 svg.addEventListener('pointercancel',e=>{if(lift(e))return;if(menu&&!menu.sticky)closeMenu();endPress()});
 svg.addEventListener('lostpointercapture',e=>{if(lift(e))return;if(menu&&!menu.sticky&&!pressed)closeMenu();if(pressed)endPress()});
@@ -437,17 +442,17 @@ const hhmm=m=>{m=Math.max(0,Math.min(Math.round(m),1439));return String(Math.flo
 const parseT=s=>{if(!/^\d\d:\d\d/.test(s||''))return NaN;return +s.slice(0,2)*60+ +s.slice(3,5)};
 $('sw').innerHTML=P.map((c,i)=>`<button data-c="${i}" aria-label="Color ${i+1}" style="background:${c[0]}"></button>`).join('');
 $('sw').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{sh.c=+b.dataset.c;renderSheet()}));
-function renderSheet(){const rq=sh.kind==='req';$('tabs').style.display=rq?'none':'flex';$('sw').style.display=rq?'none':'flex';$('shSave').textContent=rq?'Send request':'Save';
+function renderSheet(){const rq=sh.kind==='req';$('tabs').style.display=rq?'none':'flex';$('sw').style.display=rq?'none':'flex';$('shSave').textContent=rq?'Send request':'Save';$('inNote').style.display=rq?'block':'none';
 $('pT').style.display=sh.tab==='t'?'flex':'none';$('pD').style.display=sh.tab==='d'?'flex':'none';
 $('tabT').className=sh.tab==='t'?'on':'';$('tabD').className=sh.tab==='d'?'on':'';
 $('sw').querySelectorAll('button').forEach(b=>{const i=+b.dataset.c;b.style.borderColor=i===sh.c?P[i][1]:'transparent'});
-const base=rq?'Open on '+sh.req.f.name+'\u2019s day from '+fmt(sh.req.g0)+' to '+fmt(sh.req.g1)+'. They\u2019ll see it in your color and can accept or decline.':sh.tab==='t'?'Setting exact times locks it in place.':(sh.x&&sh.x.lk?'Changes the length. It still starts at '+fmt(sh.x.ts)+'.':'Without set times it slides into the first open gap, and later activities shift to make room.');
+const base=rq?(sh.req.target?sh.req.f.name+' has '+sh.req.target.n+' then ('+fmt(sh.req.target.ts)+'\u2013'+fmt(sh.req.target.ts+sh.req.target.m)+'). If they accept, your suggestion takes its place.':'Open on '+sh.req.f.name+'\u2019s day from '+fmt(sh.req.g0)+' to '+fmt(sh.req.g1)+'. They\u2019ll see it in your color and can accept or decline.'):sh.tab==='t'?'Setting exact times locks it in place.':(sh.x&&sh.x.lk?'Changes the length. It still starts at '+fmt(sh.x.ts)+'.':'Without set times it slides into the first open gap, and later activities shift to make room.');
 dialFromInputs();
 $('shHint').textContent=(sh.filled?'Filled in your usual '+dur(sh.filled.avg)+' for '+sh.filled.n+' (average of '+sh.filled.cnt+'). Change it if today is different. ':'')+base}
 function openSheet(kind,x,ctx){const now=Math.round(nowMin()/5)*5;
 sh={kind,x:x||null,c:x?x.c:(kind==='req'&&me?me.c:5),tab:kind==='edit'?'d':'t',durEdited:false,filled:null,req:ctx||null};
-$('shT').textContent=kind==='add'?'New activity':kind==='req'?'Ask '+ctx.f.name+' for a spot':'Edit '+x.n;$('inN').value=x?x.n:'';
-const s=x?x.ts:kind==='req'?ctx.start:(day===todayKey()?Math.min(now,1380):540),m=x?x.m:kind==='req'?Math.min(60,ctx.g1-ctx.start):60;
+$('shT').textContent=kind==='add'?'New activity':kind==='req'?(ctx.target?'Suggest instead of '+ctx.target.n:'Ask '+ctx.f.name+' for a spot'):'Edit '+x.n;$('inN').value=x?x.n:'';
+const s=x?x.ts:kind==='req'?ctx.start:(day===todayKey()?Math.min(now,1380):540),m=x?x.m:kind==='req'?(ctx.target?ctx.target.m:Math.min(60,ctx.g1-ctx.start)):60;$('inNote').value='';
 $('inS').value=hhmm(s);$('inE').value=hhmm(Math.min(s+m,1439));$('inH').value=Math.floor(m/60);$('inM').value=m%60;
 $('shErr').textContent='';renderSheet();renderSug();$('back').style.display='flex';if(kind!=='edit')setTimeout(()=>{try{$('inN').focus()}catch(_){}},50)}
 function closeSheet(){$('back').style.display='none';sh=null}
@@ -493,8 +498,10 @@ if(sh.tab==='d'){const h=$('inH').value===''?0:+$('inH').value,mm=$('inM').value
 if(!Number.isFinite(h)||!Number.isFinite(mm)||h<0||mm<0){err('Enter hours and minutes as numbers.');return}m=Math.round(h*60+mm);if(m<5){err('Make it at least 5 minutes long.');return}if(m>1440){err('An activity can\u2019t be longer than 24 hours.');return}}
 else{const s=parseT($('inS').value);let e=parseT($('inE').value);if(isNaN(s)||isNaN(e)){err('Enter both a start and an end time.');return}if(e===0)e=1440;if(e===1439)e=1440;
 if(e<=s){err('The end time has to be after the start time.');return}if(e-s<5){err('Make it at least 5 minutes long.');return}ts=s;m=e-s}
-if(sh.kind==='req'){const R=sh.req;if(ts<R.g0||ts+m>R.g1){err('That runs into something on '+R.f.name+'\u2019s day. Their open time is '+fmt(R.g0)+' to '+fmt(R.g1)+'.');return}
-const btn=$('shSave');btn.disabled=true;sendReq(R.f,name,ts,m).then(()=>{btn.disabled=false;closeSheet();msg('Sent to '+R.f.name+'. You\u2019ll hear back here.')}).catch(()=>{btn.disabled=false;err('Couldn\u2019t send it. Check your connection and try again.')});return}
+if(sh.kind==='req'){const R=sh.req,f=R.f;const busy=[...(fday[f.uid]||[]).filter(o=>!R.target||o.id!==R.target.id).map(o=>[o.ts,o.ts+o.m,o.n]),...myAsks(f.uid).map(r=>[r.ts,r.ts+r.m,'your other request'])];
+const hb=busy.find(([a,b])=>ts<b&&a<ts+m);if(hb){err('That runs into '+hb[2]+' on '+f.name+'\u2019s day.'+(R.target?'':' To suggest something in its place, tap that activity instead.'));return}
+const note=$('inNote').value.trim().slice(0,200);
+const btn=$('shSave');btn.disabled=true;sendReq(R.f,name,ts,m,note,R.target).then(()=>{btn.disabled=false;closeSheet();msg('Sent to '+R.f.name+'. You\u2019ll hear back here.')}).catch(()=>{btn.disabled=false;err('Couldn\u2019t send it. Check your connection and try again.')});return}
 if(sh.kind==='add'){const x=mk({n:name,m,c:sh.c,lk:ts!==null,ts:ts||0});S.push(x);if(!layout()){S=S.filter(z=>z!==x);unmk(x);layout();err(ts!==null?'Those times overlap a locked activity.':'There isn\u2019t room for that in this day.');return}x.cs=x.ts;x.cm=0;sel=x}
 else{const x=sh.x;if(!S.includes(x)){closeSheet();return}const o={ts:x.ts,m:x.m,lk:x.lk};x.m=m;if(ts!==null){x.ts=ts;x.lk=true}
 if(!layout()){Object.assign(x,o);layout();err(ts!==null?'Those times overlap another locked activity.':'That doesn\u2019t fit. It would overlap a locked activity or run past midnight.');return}x.n=name;x.c=sh.c;paint(x);sel=x}
@@ -554,6 +561,10 @@ return fb}
 function authMsg(e){const c=(e&&e.code)||'';const m={'auth/operation-not-allowed':'This sign-in method isn’t turned on in Firebase yet.','auth/invalid-credential':'That email and password don’t match.','auth/wrong-password':'That email and password don’t match.','auth/user-not-found':'No account with that email yet. Tap Create account.','auth/email-already-in-use':'That email already has an account. Tap Sign in.','auth/weak-password':'Use at least 6 characters for the password.','auth/invalid-email':'That email doesn’t look right.','auth/unauthorized-domain':'This site isn’t on Firebase’s Authorized domains list yet.','auth/popup-closed-by-user':'','auth/cancelled-popup-request':'','auth/network-request-failed':'No connection. Try again.','auth/too-many-requests':'Too many tries. Wait a minute and try again.'};return c in m?m[c]:'Sign-in didn’t work ('+(c||(e&&e.message)||'unknown error')+').'}
 
 /* ---------- friends and spot requests ---------- */
+// The check-in chicken: a flat mini version of the ROOSTER logo, with the 75% gauge eye.
+const CHICK=(()=>{const pg=(pts,c)=>`<polygon points="${pts}" fill="${c}"/>`;const ex=172,ey=248,r=30,a=Math.PI/2-0.75*2*Math.PI;
+return`<svg viewBox="30 45 670 800" aria-hidden="true">`+pg('355,400 533,192 680,495 578,500 580,610','#9FE3FF')+pg('182,62 198,196 238,212 244,250 355,400 175,615 162,505 55,500 100,283 52,280 72,262 45,215 95,222 88,185','#45B8F5')+pg('355,400 580,610 395,830 175,615','#2D8CF0')
++`<circle cx="${ex}" cy="${ey}" r="${r}" fill="#fff"/><path d="M${ex} ${ey-r} A${r} ${r} 0 1 1 ${(ex+r*Math.cos(a)).toFixed(1)} ${(ey-r*Math.sin(a)).toFixed(1)}" fill="none" stroke="#D85A30" stroke-width="16" stroke-linecap="round"/></svg>`})();
 let pokesIn=[],pokesOut=[],seenPoke=new Set(),handledPoke=new Set(),friendsLoaded=false,FB=null,me=null,friends=[],viewF=null,fday={},reqIn=[],reqOut=[],unsubs=[],dayUnsubs=[],seenReq=new Set(),handled=new Set(),pendingJoin=null,authErr='',fireState='off',panel=null,myInvite=null,confirmRm=null,inited=false;
 const fcol=c=>P[c]||P[5];
 function stopAll(){unsubs.concat(dayUnsubs).forEach(f=>{try{f()}catch(_){}});unsubs=[];dayUnsubs=[]}
@@ -564,13 +575,13 @@ function dayLbl(k){if(k===todayKey())return'Today';const [y,m,d]=k.split('-').ma
 function applyMode(){const land=isLand(),f=shownF();document.body.classList.toggle('land',land);
 document.body.classList.toggle('duo',!!(land&&f));document.body.classList.toggle('vf',!!(!land&&f));
 $('mcap').textContent=me?me.name:'You';const pn=f?pokeNote(f):'';
-$('fcap').innerHTML=f?`<span data-a="cycle">${esc(f.name)}${friends.length>1?' ⇄':''}</span>${pn?' <span style="font-weight:400;color:var(--muted)">· '+esc(pn)+'</span>':''}<button class="poke" data-a="poke">Check in</button>`:'';
-$('bannerTxt').textContent=f&&!land?'Viewing '+f.name+'’s day. Tap an open spot to ask for it.'+(pn?' '+pn+'.':''):'';renderFriend()}
+$('fcap').innerHTML=f?`<span data-a="cycle">${esc(f.name)}${friends.length>1?' ⇄':''}</span>${pn?' <span style="font-weight:400;color:var(--muted)">· '+esc(pn)+'</span>':''}<button class="chick" data-a="poke" aria-label="Check in on ${esc(f.name)}">${CHICK}</button>`:'';
+$('bannerTxt').textContent=f&&!land?f.name+'\u2019s day. Tap a spot to suggest something.'+(pn?' '+pn+'.':''):'';renderFriend()}
 function lastPoke(f){return pokesOut.filter(p=>p.to===f.uid).sort((a,b)=>b.created-a.created)[0]||null}
 function pokeNote(f){const p=lastPoke(f);if(!p)return'';if(p.status==='pending')return Date.now()-p.created<36e5?'Check-in sent, waiting':'';
 const t=new Date(p.answeredAt||p.updated);return Date.now()-t<6*36e5?p.answer+' at '+fmt(t.getHours()*60+t.getMinutes()):''}
 async function sendPoke(f){if(!f||!me)return;const p=lastPoke(f);if(p&&p.status==='pending'&&Date.now()-p.created<30*6e4){msg('Already asked '+f.name+'. Waiting for an answer.');return}
-try{await FB.add('pokes',{from:me.uid,fromName:me.name,to:f.uid,toName:f.name,status:'pending',fromSeen:false,created:Date.now(),updated:Date.now()});buzz();msg('Asked '+f.name+' what they’re doing.')}catch(e){msg('Couldn’t send the check-in. Try again.')}}
+try{await FB.add('pokes',{from:me.uid,fromName:me.name,to:f.uid,toName:f.name,status:'pending',fromSeen:false,created:Date.now(),updated:Date.now()});buzz();msg('Check-in sent to '+f.name+'. Tap a spot on their day to suggest something.')}catch(e){msg('Couldn’t send the check-in. Try again.')}}
 function openPoke(id){panel={kind:'poke',id};renderPanel();$('back2').style.display='flex'}
 function nowActivity(){const x=liveItem();if(x&&x.n!=='New activity')return x.n;if(day!==todayKey())return'';const n=nowMin(),it=S.find(s=>n>=s.ts&&n<s.ts+s.m);return it?it.n:''}
 async function answerPoke(id,name,startT){const p=pokesIn.find(q=>q.id===id);if(!p||!name)return;name=name.trim().slice(0,40);closeP();
@@ -605,7 +616,7 @@ if(friendsLoaded)friends.filter(f=>!had.has(f.uid)).forEach(f=>msg('You and '+f.
 friendsLoaded=true;if(viewF&&!curFriend())viewF=null;subDays();applyMode();renderPanel()}));
 unsubs.push(FB.listenWhere('requests','to',uid,(list)=>{if(!list)return;reqIn=list;
 const fresh=list.filter(r=>r.status==='pending'&&!seenReq.has(r.id));fresh.forEach(r=>seenReq.add(r.id));
-if(fresh.length){const r=fresh[0];buzz();msg(r.fromName+' asked for '+r.n+' at '+fmt(r.ts)+(r.day!==day?' ('+dayLbl(r.day)+')':'')+'.','View',()=>openReview(r.id))}
+if(fresh.length){const r=fresh[0];buzz();msg(r.fromName+' '+(r.replaces?'suggested '+r.n+' instead of '+r.replaces.n:'asked for '+r.n)+' at '+fmt(r.ts)+(r.day!==day?' ('+dayLbl(r.day)+')':'')+'.','View',()=>openReview(r.id))}
 updBadge();renderReqOverlay();renderPanel()}));
 unsubs.push(FB.listenWhere('pokes','to',uid,(list)=>{if(!list)return;pokesIn=list;
 const fresh=list.filter(p=>p.status==='pending'&&!seenPoke.has(p.id)&&Date.now()-p.created<6*36e5);list.forEach(p=>seenPoke.add(p.id));
@@ -628,14 +639,15 @@ const busy=items.filter(o=>o.lk).some(o=>o.ts<item.ts+item.m&&item.ts<o.ts+o.m);
 items.push(item);hist[r.day]=items;LS.set(LP+'day.'+r.day,JSON.stringify(items));if(BK){try{await withTO(BK.setDay(r.day,clean(items)))}catch(_){}}return true}
 async function acceptReq(id){const r=reqIn.find(q=>q.id===id);if(!r||r.status!=='pending')return;closeP();
 if(r.day!==day)await loadDay(r.day,false);
+let rem=null,remPos=-1;if(r.replaces){rem=S.find(s=>s.id===r.replaces.id&&!(timing&&timing.id===s.id));if(rem){remPos=S.indexOf(rem);S.splice(remPos,1)}}
 const x=mk({id:'rq'+r.id,n:r.n,m:r.m,ts:r.ts,lk:true,c:r.fc,by:{uid:r.from,name:r.fromName},req:r.id});S.push(x);
-if(!layout()){S=S.filter(z=>z!==x);unmk(x);layout();const b=S.find(s=>s.lk&&s.ts<r.ts+r.m&&r.ts<s.ts+s.m);msg('It overlaps '+(b?b.n:'something locked')+' on your day. Move that first, then accept.');return}
-x.cs=x.ts;x.cm=x.m;sel=x;touched=true;save();upd();setInfo();
-try{await FB.update('requests/'+id,{status:'accepted',updated:Date.now()});msg('Added. '+r.fromName+' will see it on their day too.')}
+if(!layout()){S=S.filter(z=>z!==x);unmk(x);if(rem)S.splice(remPos,0,rem);layout();const b=S.find(s=>s.lk&&s.ts<r.ts+r.m&&r.ts<s.ts+s.m);msg('It overlaps '+(b?b.n:'something locked')+' on your day. Move that first, then accept.');return}
+if(rem)unmk(rem);x.cs=x.ts;x.cm=x.m;sel=x;touched=true;save();upd();setInfo();
+try{await FB.update('requests/'+id,{status:'accepted',updated:Date.now()});msg((rem?'Swapped '+rem.n+' for '+r.n+'. ':'Added. ')+r.fromName+' will see it on their day too.')}
 catch(e){S=S.filter(z=>z!==x);unmk(x);layout();save();upd();msg('Couldn’t accept right now. Check your connection and try again.')}}
 async function declineReq(id){const r=reqIn.find(q=>q.id===id);if(!r)return;closeP();
 try{await FB.update('requests/'+id,{status:'declined',updated:Date.now()});msg('Declined. '+r.fromName+' will be told.')}catch(e){msg('Couldn’t decline right now. Try again.')}}
-async function sendReq(f,name,ts,m){await FB.add('requests',{from:me.uid,fromName:me.name,fc:me.c,to:f.uid,toName:f.name,day,ts,m,n:name,status:'pending',fromSeen:false,created:Date.now(),updated:Date.now()})}
+async function sendReq(f,name,ts,m,note,target){const o={from:me.uid,fromName:me.name,fc:me.c,to:f.uid,toName:f.name,day,ts,m,n:name,status:'pending',fromSeen:false,created:Date.now(),updated:Date.now()};if(note)o.note=note;if(target)o.replaces={id:target.id,n:target.n};await FB.add('requests',o)}
 const CODE_AB='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 async function createInvite(){let code='';const r=new Uint32Array(6);crypto.getRandomValues(r);r.forEach(v=>code+=CODE_AB[v%CODE_AB.length]);
 await FB.set('invites/'+code,{from:me.uid,name:me.name,c:me.c,created:Date.now()});myInvite={code,created:Date.now()};LS.set(LP+'invite',JSON.stringify(myInvite))}
@@ -671,7 +683,7 @@ function openFriends(){panel={kind:'friends'};renderPanel();$('back2').style.dis
 function openReview(id){panel={kind:'review',id};renderPanel();$('back2').style.display='flex'}
 function reqRow(r,inc){const c=fcol(inc?r.fc:(me?me.c:5));const when=dayLbl(r.day)+' · '+fmt(r.ts)+'–'+fmt(r.ts+r.m);
 const st=r.status==='pending'?(inc?'':'Waiting'):r.status==='accepted'?'Accepted':'Declined';
-return`<div class="li"><i class="dot" style="background:${c[0]}"></i><div style="flex:1;min-width:0">${inc?'<b>'+esc(r.fromName)+'</b>: ':'To <b>'+esc(r.toName)+'</b>: '}${esc(r.n)}<br><small>${when}${st?' · '+st:''}</small></div>`+
+return`<div class="li"><i class="dot" style="background:${c[0]}"></i><div style="flex:1;min-width:0">${inc?'<b>'+esc(r.fromName)+'</b>: ':'To <b>'+esc(r.toName)+'</b>: '}${esc(r.n)}${r.replaces?' <small>instead of '+esc(r.replaces.n)+'</small>':''}<br><small>${when}${st?' \u00b7 '+st:''}</small>${r.note?'<br><small>\u201c'+esc(r.note)+'\u201d</small>':''}</div>`+
 (inc&&r.status==='pending'?`<button class="btn2" data-a="decline" data-id="${r.id}">Decline</button><button class="btn2 pri" data-a="accept" data-id="${r.id}">Accept</button>`:'')+
 (!inc&&r.status==='pending'?`<button class="btn2" data-a="cancel" data-id="${r.id}">Cancel</button>`:'')+'</div>'}
 function renderPanel(){if(!panel)return;const el=$('sheet2');const keep={};['em','pw','joinIn','myName','pokeIn'].forEach(id=>{const i=$(id);if(i)keep[id]=i.value});
@@ -685,8 +697,8 @@ h+=`<p style="margin:6px 0 10px"><b>${esc(p.fromName)}</b> wants to know what yo
 <button class="btn2" data-a="pokeSkip" data-id="${p.id}" style="margin-top:10px">Not now</button>`}}
 else if(panel.kind==='review'){const r=reqIn.find(q=>q.id===panel.id);
 if(!r)h+=`<p class="muted">This request was cancelled.</p>`;
-else{h+=`<div class="li" style="border:none"><i class="dot" style="background:${fcol(r.fc)[0]}"></i><div style="flex:1"><b>${esc(r.fromName)}</b> wants to add <b>${esc(r.n)}</b> to your day<br><small>${dayLbl(r.day)} · ${fmt(r.ts)}–${fmt(r.ts+r.m)} (${dur(r.m)})</small></div></div>`;
-h+=r.status==='pending'?`<div class="row" style="margin-top:10px"><button class="btn2" data-a="decline" data-id="${r.id}" style="flex:1;height:46px">Decline</button><button class="btn2 pri" data-a="accept" data-id="${r.id}" style="flex:1;height:46px">Accept</button></div><p class="hint">Accept and it’s locked onto both your days. Decline and ${esc(r.fromName)} gets told.</p>`:`<p class="muted">You ${r.status} this one.</p>`}}
+else{h+=`<div class="li" style="border:none"><i class="dot" style="background:${fcol(r.fc)[0]}"></i><div style="flex:1"><b>${esc(r.fromName)}</b> ${r.replaces?'suggests':'wants to add'} <b>${esc(r.n)}</b>${r.replaces?' instead of <b>'+esc(r.replaces.n)+'</b>':' to your day'}<br><small>${dayLbl(r.day)} \u00b7 ${fmt(r.ts)}\u2013${fmt(r.ts+r.m)} (${dur(r.m)})</small></div></div>`+(r.note?`<p style="margin:4px 0 0 22px;font-size:15px;color:var(--text2)">\u201c${esc(r.note)}\u201d</p>`:'');
+h+=r.status==='pending'?`<div class="row" style="margin-top:10px"><button class="btn2" data-a="decline" data-id="${r.id}" style="flex:1;height:46px">Decline</button><button class="btn2 pri" data-a="accept" data-id="${r.id}" style="flex:1;height:46px">Accept</button></div><p class="hint">Accept and it\u2019s locked onto both your days${r.replaces?', in place of '+esc(r.replaces.n):''}. Decline and ${esc(r.fromName)} gets told.</p>`:`<p class="muted">You ${r.status} this one.</p>`}}
 else if(fireState==='unavail'){h+=`<p class="muted">Sharing with friends works in the version on your GitHub site. Open it there:</p><p><a href="https://pablokm.github.io/ISLANAUT/apps/rooster/">pablokm.github.io/ISLANAUT/apps/rooster</a></p>`}
 else if(fireState==='loading'||fireState==='off'){h+=`<p class="muted">Connecting…</p>`}
 else if(fireState==='fail'){h+=`<p class="muted">Couldn’t reach the sharing service. Check your connection, then try again.</p><button class="save" data-a="retry">Try again</button>`}
@@ -703,7 +715,7 @@ const inc=reqIn.filter(r=>r.status==='pending').sort((a,b)=>a.day.localeCompare(
 h+=`<div class="sec">Requests for you</div>`+(inc.length?inc.map(r=>reqRow(r,true)).join(''):`<p class="muted">None right now.</p>`);
 const out=reqOut.filter(r=>r.day>=todayKey()).sort((a,b)=>b.created-a.created).slice(0,8);
 if(out.length)h+=`<div class="sec">Your requests</div>`+out.map(r=>reqRow(r,false)).join('');
-h+=`<div class="sec">Friends</div>`+(friends.length?friends.map(f=>`<div class="li"><i class="dot" style="background:${fcol(f.c)[0]}"></i><div style="flex:1;min-width:0">${esc(f.name)}${pokeNote(f)?'<br><small>'+esc(pokeNote(f))+'</small>':''}</div>`+(confirmRm===f.uid?`<button class="btn2 dng" data-a="rmYes" data-u="${f.uid}">Remove?</button><button class="btn2" data-a="rmNo">Keep</button>`:`<button class="btn2" data-a="pokeF" data-u="${f.uid}">Check in</button><button class="btn2" data-a="view" data-u="${f.uid}">View</button><button class="btn2" data-a="rm" data-u="${f.uid}" aria-label="Remove ${esc(f.name)}">&times;</button>`)+'</div>').join('')+`<p class="hint">Turn your phone sideways to see your day next to a friend’s.</p>`:`<p class="muted">No friends yet. Invite someone below.</p>`);
+h+=`<div class="sec">Friends</div>`+(friends.length?friends.map(f=>`<div class="li"><i class="dot" style="background:${fcol(f.c)[0]}"></i><div style="flex:1;min-width:0">${esc(f.name)}${pokeNote(f)?'<br><small>'+esc(pokeNote(f))+'</small>':''}</div>`+(confirmRm===f.uid?`<button class="btn2 dng" data-a="rmYes" data-u="${f.uid}">Remove?</button><button class="btn2" data-a="rmNo">Keep</button>`:`<button class="chick" data-a="pokeF" data-u="${f.uid}" aria-label="Check in on ${esc(f.name)}">${CHICK}</button><button class="btn2" data-a="view" data-u="${f.uid}">View</button><button class="btn2" data-a="rm" data-u="${f.uid}" aria-label="Remove ${esc(f.name)}">&times;</button>`)+'</div>').join('')+`<p class="hint">Turn your phone sideways to see your day next to a friend’s.</p>`:`<p class="muted">No friends yet. Invite someone below.</p>`);
 const inv=myInvite&&Date.now()-myInvite.created<7*864e5?myInvite:null;const link=inv?location.origin+location.pathname+'#join-'+inv.code:'';
 h+=`<div class="sec">Add a friend</div>`+(inv?`<div class="code">${inv.code}</div><div class="row"><input readonly id="invLink" value="${esc(link)}" style="flex:1;font-size:13px"><button class="btn2" data-a="copy">Copy link</button></div><p class="hint">Send them the link or the code. Once they join, you can see each other’s days. It works for 7 days. <button class="btn2" data-a="invite" style="height:28px;font-size:12px">New code</button></p>`:`<button class="btn2 pri" data-a="invite" style="width:100%;height:44px">Create an invite</button>`)+
 `<div class="row" style="margin-top:10px"><input id="joinIn" placeholder="Have a code? Enter it" maxlength="6" autocapitalize="characters" autocomplete="off" style="flex:1;text-transform:uppercase"><button class="btn2 pri" data-a="join">Join</button></div><div class="err" id="frErr"></div>`;
@@ -723,7 +735,7 @@ else if(a==='emIn'||a==='emUp'){authErr='';const em=$('em').value.trim(),pw=$('p
 if(a==='emIn')await FB.emailIn(em,pw);else await FB.emailUp(em,pw)}
 else if(a==='signout'){await FB.out();closeP()}
 else if(a==='view'){viewF=u;closeP();applyMode()}
-else if(a==='pokeF'){await sendPoke(friends.find(f=>f.uid===u));renderPanel()}
+else if(a==='pokeF'){const f=friends.find(f=>f.uid===u);viewF=u;closeP();applyMode();await sendPoke(f);applyMode()}
 else if(a==='pokeOpen'){openPoke(id)}
 else if(a==='pokeAns'){const n=b.dataset.n||($('pokeIn')?$('pokeIn').value.trim():'');if(!n){const i=$('pokeIn');if(i)i.focus();return}const st=$('pokeTime');answerPoke(panel.id,n,!!(st&&st.checked))}
 else if(a==='pokeSkip'){await FB.del('pokes/'+id);closeP()}
@@ -737,12 +749,13 @@ else if(a==='myColor'){me.c=+b.dataset.c;await FB.set('users/'+me.uid,{name:me.n
 }catch(err){if(a==='google'||a==='emIn'||a==='emUp'){authErr=authMsg(err);renderPanel()}else fe(err&&err.message&&!err.code?err.message:'That didn’t work. Check your connection and try again.')}});
 $('frBtn').addEventListener('click',()=>{closeMenu();openFriends()});
 $('backMine').addEventListener('click',()=>{viewF=null;applyMode()});
-$('fcap').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&&b.dataset.a==='poke'){sendPoke(shownF());return}if(friends.length<2)return;const f=shownF(),i=friends.indexOf(f);viewF=friends[(i+1)%friends.length].uid;applyMode()});
-$('bannerPoke').addEventListener('click',()=>sendPoke(shownF()));
+$('fcap').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&&b.dataset.a==='poke'){sendPoke(shownF()).then(applyMode);return}if(friends.length<2)return;const f=shownF(),i=friends.indexOf(f);viewF=friends[(i+1)%friends.length].uid;applyMode()});
+$('bannerPoke').innerHTML=CHICK;$('bannerPoke').addEventListener('click',async()=>{await sendPoke(shownF());applyMode()});
 // Tap a friend's coil: an activity shows its time, your waiting request offers cancel, an open spot starts a request.
 $('fbox').addEventListener('click',e=>{const f=shownF();if(!f||!me)return;const sv=$('fbox'),p=sv.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const M=sv.getScreenCTM();if(!M)return;const q=p.matrixTransform(M.inverse()),n=near(q);if(n.d>TW/2+4)return;
-const items=fday[f.uid]||[],it=items.find(o=>n.m>=o.ts&&n.m<=o.ts+o.m);if(it){msg(f.name+': '+it.n+' · '+fmt(it.ts)+'–'+fmt(it.ts+it.m));return}
-const asks=myAsks(f.uid),mine=asks.find(r=>n.m>=r.ts&&n.m<=r.ts+r.m);if(mine){msg('Waiting for '+f.name+' to answer '+mine.n+'.','Cancel it',()=>FB.del('requests/'+mine.id).catch(()=>{}));return}
+const items=fday[f.uid]||[],it=items.find(o=>n.m>=o.ts&&n.m<=o.ts+o.m);
+const asks=myAsks(f.uid),mine=asks.find(r=>n.m>=r.ts&&n.m<=r.ts+r.m);
+if(it&&!mine){openSheet('req',null,{f,target:{id:it.id,n:it.n,ts:it.ts,m:it.m},g0:0,g1:1440,start:it.ts});return}if(mine){msg('Waiting for '+f.name+' to answer '+mine.n+'.','Cancel it',()=>FB.del('requests/'+mine.id).catch(()=>{}));return}
 let g0=0,g1=1440;[...items.map(o=>[o.ts,o.ts+o.m]),...asks.map(r=>[r.ts,r.ts+r.m])].forEach(([a,b])=>{if(b<=n.m&&b>g0)g0=b;if(a>=n.m&&a<g1)g1=a});
 if(g1-g0<5){msg('That spot is too small to ask for.');return}
 const st=Math.max(g0,Math.min(Math.round(n.m/5)*5,g1-5));openSheet('req',null,{f,g0,g1,start:st})});

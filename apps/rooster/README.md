@@ -15,7 +15,8 @@ One-time console setup:
 How it fits together:
 - `users/{uid}/days/{date}` holds a day's activities. Friends (listed in your `friends` subcollection) can read them.
 - Invites are 6-character codes (`invites/{code}`); joining adds each person to the other's friends list.
-- A check-in (`pokes/{id}`) asks a friend what they're doing; their answer (and optionally a timer on their day) comes back.
+- The chicken button sends a check-in (`pokes/{id}`) asking a friend what they're doing, and opens their day. Their answer (and optionally a timer on their day) comes back.
+- On a friend's day, tap an open spot to ask for it, or tap one of their activities to suggest something in its place. Requests can carry a note.
 - A spot request (`requests/{id}`) is pending until the other person accepts (it's added to both days) or declines (the asker is told in the app).
 - Without a connection, or in the claude.ai version, the app saves on the device only.
 

@@ -69,7 +69,10 @@ service cloud.firestore {
         && request.resource.data.n is string && request.resource.data.n.size() <= 40
         && request.resource.data.m is number && request.resource.data.m >= 5 && request.resource.data.m <= 1440
         && request.resource.data.ts is number && request.resource.data.ts >= 0
-        && request.resource.data.ts + request.resource.data.m <= 1440;
+        && request.resource.data.ts + request.resource.data.m <= 1440
+        // Optional note, and optional "instead of" activity it would replace.
+        && (!('note' in request.resource.data) || (request.resource.data.note is string && request.resource.data.note.size() <= 200))
+        && (!('replaces' in request.resource.data) || request.resource.data.replaces is map);
 
       allow update: if signedIn() && (
         // The person asked can accept or decline once.
