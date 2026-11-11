@@ -558,6 +558,7 @@ listen:(p,cb)=>sub(()=>{const v=rd()[p];cb(v?clean(v):null)}),
 listenColl:(cp,cb)=>sub(()=>{const s=rd();cb(kids(s,cp).map(k=>({id:k.slice(cp.length+1),...s[k]})))}),
 listenWhere:(cp,f,v,cb)=>sub(()=>{const s=rd();cb(kids(s,cp).filter(k=>s[k][f]===v).map(k=>({id:k.slice(cp.length+1),...s[k]})))})};
 return fb}
+function fbErr(e){const c=(e&&e.code)||'';if(!c&&e&&e.message)return e.message;const m={'permission-denied':'Firebase blocked that (permission-denied). The security rules in the Firebase console need to be pasted in and Published.','failed-precondition':'Firestore isn’t set up yet (failed-precondition). Create the Firestore database in the Firebase console.','not-found':'Firestore database not found. Create it in the Firebase console.','unavailable':'Can’t reach Firebase right now. Check your connection and try again.','unauthenticated':'You’re signed out. Sign in again.','resource-exhausted':'Firebase quota reached for today.'};return c in m?m[c]:'That didn’t work ('+(c||'unknown error')+').'}
 function authMsg(e){const c=(e&&e.code)||'';const m={'auth/operation-not-allowed':'This sign-in method isn’t turned on in Firebase yet.','auth/invalid-credential':'That email and password don’t match.','auth/wrong-password':'That email and password don’t match.','auth/user-not-found':'No account with that email yet. Tap Create account.','auth/email-already-in-use':'That email already has an account. Tap Sign in.','auth/weak-password':'Use at least 6 characters for the password.','auth/invalid-email':'That email doesn’t look right.','auth/unauthorized-domain':'This site isn’t on Firebase’s Authorized domains list yet.','auth/popup-closed-by-user':'','auth/cancelled-popup-request':'','auth/network-request-failed':'No connection. Try again.','auth/too-many-requests':'Too many tries. Wait a minute and try again.'};return c in m?m[c]:'Sign-in didn’t work ('+(c||(e&&e.message)||'unknown error')+').'}
 
 /* ---------- friends and spot requests ---------- */
@@ -746,7 +747,7 @@ else if(a==='copy'){const i=$('invLink');try{await navigator.clipboard.writeText
 else if(a==='join'||a==='joinPending'){const nm=await joinCode(a==='join'?$('joinIn').value:pendingJoin);msg('You and '+nm+' are now connected.');renderPanel()}
 else if(a==='saveName'){const v=$('myName').value.trim().slice(0,24);if(!v){fe('Enter a name.');return}me.name=v;await FB.set('users/'+me.uid,{name:v,c:me.c,updated:Date.now()},true);msg('Saved.');applyMode();renderPanel()}
 else if(a==='myColor'){me.c=+b.dataset.c;await FB.set('users/'+me.uid,{name:me.name,c:me.c,updated:Date.now()},true);renderPanel()}
-}catch(err){if(a==='google'||a==='emIn'||a==='emUp'){authErr=authMsg(err);renderPanel()}else fe(err&&err.message&&!err.code?err.message:'That didn’t work. Check your connection and try again.')}});
+}catch(err){if(a==='google'||a==='emIn'||a==='emUp'){authErr=authMsg(err);renderPanel()}else fe(fbErr(err))}});
 $('frBtn').addEventListener('click',()=>{closeMenu();openFriends()});
 $('backMine').addEventListener('click',()=>{viewF=null;applyMode()});
 $('fcap').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&&b.dataset.a==='poke'){sendPoke(shownF()).then(applyMode);return}if(friends.length<2)return;const f=shownF(),i=friends.indexOf(f);viewF=friends[(i+1)%friends.length].uid;applyMode()});
