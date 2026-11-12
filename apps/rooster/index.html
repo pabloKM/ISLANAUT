@@ -17,12 +17,15 @@
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
 body{display:flex;flex-direction:column;align-items:center;padding:8px 10px 10px}
 .wrap{width:100%;max-width:440px;display:flex;flex-direction:column;flex:1;min-height:0}
-header{display:flex;align-items:center;gap:6px;padding:2px 2px 4px}
+header{display:flex;align-items:center;gap:4px;padding:2px 2px 4px}
 .ib{width:40px;height:40px;border-radius:20px;border:0.5px solid var(--line2);background:var(--panel);color:var(--text);font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
-.day{flex:1;text-align:center}
+.day{flex:1;min-width:0;text-align:center}
+.day b,.day span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#header .ib,header .ib{width:36px;height:36px;border-radius:18px;flex:none}
+#logo{flex:none}
 .day b{display:block;font-size:17px;font-weight:600}
-.day span{font-size:12px;color:var(--muted)}
-.add{height:40px;border-radius:20px;border:none;background:var(--btn);color:var(--btn-text);font-size:15px;font-weight:600;padding:0 16px;cursor:pointer}
+.day span{display:block;font-size:12px;color:var(--muted)}
+.add{white-space:nowrap;flex:none;height:36px;border-radius:18px;border:none;background:var(--btn);color:var(--btn-text);font-size:15px;font-weight:600;padding:0 12px;cursor:pointer}
 .sub{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);padding:2px 6px 6px}
 .stage{flex:1;min-height:0;display:flex;justify-content:center}
 .stage{gap:8px}
@@ -95,6 +98,7 @@ input[type=time]{flex:1}
 <button class="ib" id="prev" aria-label="Previous day">&#8249;</button>
 <div class="day"><b id="dayLabel">Today</b><span id="daySub"></span></div>
 <button class="ib" id="next" aria-label="Next day">&#8250;</button>
+<button class="ib" id="stBtn" aria-label="All your activities"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 20V11M12 20V4M19 20v-6"/></svg></button>
 <button class="ib fbtn" id="frBtn" aria-label="Friends and sharing"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.6"/><path d="M16 13.6c2.8.2 5 2.2 5 5"/></svg><span class="badge" id="badge"></span></button>
 <button class="add" id="addBtn" aria-label="Add an activity">+ Add</button>
 </header>
@@ -313,7 +317,7 @@ function loadHistLocal(){for(const k in hist)delete hist[k];try{const pre=LP+'da
 function readLocalRaw(k){try{const a=JSON.parse(LS.get(k)||'[]');return Array.isArray(a)?a.filter(valid):[]}catch(_){return[]}}
 function stats(){const m=new Map(),live=timing?timing.id:null;
 const cur=serialize();for(const [d,items] of Object.entries({...hist,[day]:cur}))for(const o of items){if(!o||o.id===live||!o.n||o.n==='New activity'||o.m<1)continue;
-const k=o.n.trim().toLowerCase();const s=m.get(k)||{n:o.n.trim(),tot:0,cnt:0,c:o.c,last:''};s.tot+=o.m;s.cnt++;if(d>=s.last){s.last=d;s.c=o.c;s.n=o.n.trim()}m.set(k,s)}
+const k=o.n.trim().toLowerCase();const s=m.get(k)||{n:o.n.trim(),tot:0,cnt:0,c:o.c,last:'',min:1e9,max:0};s.tot+=o.m;s.cnt++;if(o.m<s.min)s.min=o.m;if(o.m>s.max)s.max=o.m;if(d>=s.last){s.last=d;s.c=o.c;s.n=o.n.trim()}m.set(k,s)}
 return [...m.values()].map(s=>({...s,avg:Math.max(5,Math.round(s.tot/s.cnt/5)*5)})).sort((a,b)=>b.cnt-a.cnt||b.last.localeCompare(a.last))}
 /* ---------- storage ---------- */
 // BK is the remote backend: claude.ai account storage, Firebase, or null (this phone only).
@@ -395,18 +399,18 @@ function near(q){let bi=0,bd=1e9;for(let i=0;i<NP;i+=2){const d=(X[i]-q.x)**2+(Y
 const at=m=>S.find(s=>m>=s.ts&&m<=s.ts+s.m);
 function endPress(){clearTimeout(hold);hold=null;if(pressed&&mode&&mode!=='pinch'){touched=true;save()}else if(mode==='pinch'){touched=true;save()}pressed=null;mode=null}
 svg.addEventListener('contextmenu',e=>e.preventDefault());
-let tapM=0;const cap=e=>{try{svg.setPointerCapture(e.pointerId)}catch(_){}};const ptrs=new Map();let pinch=null;
+let tapM=0,blank=null,lastUp=0;document.addEventListener('click',e=>{if(performance.now()-lastUp<300&&!e.target.closest('#box')){e.stopPropagation();e.preventDefault()}},true);const cap=e=>{try{svg.setPointerCapture(e.pointerId)}catch(_){}};const ptrs=new Map();let pinch=null;
 function applyM(x,nm){if(nm===x.m)return true;if(timing&&timing.id===x.id){msg('This one is being timed live.');return false}const old=x.m;x.m=nm;if(!layout()){x.m=old;layout();msg('No more room for that.');return false}upd();sel=x;setInfo();return true}
 function pdist(){const v=[...ptrs.values()];return Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y)||1}
 function startPinch(x){clearTimeout(hold);closeMenu();if(timing&&timing.id===x.id){msg('This one is being timed live.');return}pinch={x,d0:pdist(),m0:x.m};pressed=x;mode='pinch';sel=x;setInfo()}
 svg.addEventListener('pointerdown',e=>{const q=pt(e);ptrs.set(e.pointerId,q);
-if(ptrs.size===2){cap(e);let x=pressed;if(!x){const v=[...ptrs.values()],n=near({x:(v[0].x+v[1].x)/2,y:(v[0].y+v[1].y)/2});if(n.d<=TW/2+10)x=at(n.m)}if(x&&mode!=='pinch')startPinch(x);return}
+if(ptrs.size===2){blank=null;cap(e);let x=pressed;if(!x){const v=[...ptrs.values()],n=near({x:(v[0].x+v[1].x)/2,y:(v[0].y+v[1].y)/2});if(n.d<=TW/2+10)x=at(n.m)}if(x&&mode!=='pinch')startPinch(x);return}
 if(ptrs.size>2)return;
 if(menu&&menu.sticky){const hv=hit(q);if(hv&&hv.k==='color')return;if(hv)act(hv);closeMenu();return}
 closeMenu();
 if(Math.hypot(q.x-FX,q.y-FY)<28){toggleTimer();return}
 const n=near(q);if(n.d>TW/2+2)return;const x=at(n.m);
-if(!x){const r=reqIn.find(r=>r.status==='pending'&&r.day===day&&n.m>=r.ts&&n.m<=r.ts+r.m);if(r)openReview(r.id);return}
+if(!x){const r=reqIn.find(r=>r.status==='pending'&&r.day===day&&n.m>=r.ts&&n.m<=r.ts+r.m);if(r)openReview(r.id);else blank={q,m:n.m};return}
 pressed=x;p0=q;mode=null;grab=n.m-x.ts;tapM=n.m;cap(e);clearTimeout(hold);
 hold=setTimeout(()=>{if(pressed&&!mode){buzz();menu={x:p0.x,y:p0.y,seg:pressed,hover:null,colorOpen:false};drawMenu()}},450)});
 svg.addEventListener('pointermove',e=>{const q=pt(e);if(ptrs.has(e.pointerId))ptrs.set(e.pointerId,q);
@@ -414,6 +418,7 @@ if(mode==='pinch'){if(pinch&&ptrs.size===2){let nm=Math.round(pinch.m0*pdist()/p
 if(menu){if(menu.sticky)return;const hv=hit(q);const k=hv?hv.k:null,hi=hv&&hv.k==='sw'?hv.i:null;
 if(k==='color')menu.colorOpen=true;else if(k==='lock'||k==='del'||k==='edit')menu.colorOpen=false;
 if(k!==menu.hover||hi!==menu.hi){menu.hover=k;menu.hi=hi;drawMenu()}return}
+if(blank&&Math.hypot(q.x-blank.q.x,q.y-blank.q.y)>7)blank=null;
 if(!pressed)return;
 if(!mode){if(Math.hypot(q.x-p0.x,q.y-p0.y)<7)return;clearTimeout(hold);
 if(pressed.lk){msg(timing&&timing.id===pressed.id?'This one is being timed live.':'Locked in place. Hold it to unlock.');pressed=null;return}
@@ -426,16 +431,25 @@ else{let nm=Math.round((n.m-pressed.ts)/15)*15;nm=Math.max(15,nm);applyM(pressed
 setInfo()});
 function lift(e){ptrs.delete(e.pointerId);if(mode==='pinch'){if(ptrs.size===0){pinch=null;endPress()}return true}return false}
 svg.addEventListener('pointerup',e=>{if(lift(e))return;
+lastUp=performance.now();
+if(blank){const b=blank;blank=null;if(!menu&&!pressed){tapBlank(b.m);return}}
 if(menu&&!menu.sticky){const hv=menu.hover;
 if(hv==='color'){menu.sticky=true;menu.colorOpen=true;menu.hover=null;drawMenu()}
 else{if(hv==='sw')act({k:'sw',i:menu.hi});else if(hv)act({k:hv});closeMenu()}}
 else if(pressed&&!mode){const rq=reqIn.find(r=>r.status==='pending'&&r.day===day&&tapM>=r.ts&&tapM<=r.ts+r.m);if(rq)openReview(rq.id);else{sel=pressed;setInfo()}}
 endPress()});
-svg.addEventListener('pointercancel',e=>{if(lift(e))return;if(menu&&!menu.sticky)closeMenu();endPress()});
+svg.addEventListener('pointercancel',e=>{blank=null;if(lift(e))return;if(menu&&!menu.sticky)closeMenu();endPress()});
 svg.addEventListener('lostpointercapture',e=>{if(lift(e))return;if(menu&&!menu.sticky&&!pressed)closeMenu();if(pressed)endPress()});
 svg.addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();const n=near(pt(e));if(n.d>TW/2+2)return;const x=at(n.m);if(!x)return;
 const nm=Math.max(15,Math.round(x.m*Math.exp(-e.deltaY*.01)/15)*15);if(applyM(x,nm)){touched=true;clearTimeout(x._w);x._w=setTimeout(save,500)}},{passive:false});
 
+/* ---------- tap an empty stretch to add something there ---------- */
+function tapBlank(m){
+const A=[...S].sort((a,b)=>a.ts-b.ts);let g0=0,g1=1440;
+for(const x of A){if(m>=x.ts&&m<=x.ts+x.m)return;if(x.ts+x.m<=m)g0=Math.max(g0,x.ts+x.m);if(x.ts>m){g1=Math.min(g1,x.ts)}}
+let s=Math.max(g0,Math.floor(m/5)*5);if(s>=g1)s=g1-5;s=Math.max(g0,s);
+if(g1-g0<5){msg('That gap is too small for a new activity.');return}
+openSheet('add',null,{gap:{g0,g1},start:s,m:Math.min(60,g1-s)})}
 /* ---------- sheet ---------- */
 let sh=null;
 const hhmm=m=>{m=Math.max(0,Math.min(Math.round(m),1439));return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')};
@@ -450,9 +464,9 @@ const base=rq?(sh.req.target?sh.req.f.name+' has '+sh.req.target.n+' then ('+fmt
 dialFromInputs();
 $('shHint').textContent=(sh.filled?'Filled in your usual '+dur(sh.filled.avg)+' for '+sh.filled.n+' (average of '+sh.filled.cnt+'). Change it if today is different. ':'')+base}
 function openSheet(kind,x,ctx){const now=Math.round(nowMin()/5)*5;
-sh={kind,x:x||null,c:x?x.c:(kind==='req'&&me?me.c:5),tab:kind==='edit'?'d':'t',durEdited:false,filled:null,req:ctx||null};
+sh={kind,x:x||null,c:x?x.c:(kind==='req'&&me?me.c:5),tab:kind==='edit'?'d':'t',durEdited:false,filled:null,req:kind==='req'?ctx:null,gap:kind==='add'&&ctx&&ctx.gap?ctx.gap:null};
 $('shT').textContent=kind==='add'?'New activity':kind==='req'?(ctx.target?'Suggest instead of '+ctx.target.n:'Ask '+ctx.f.name+' for a spot'):'Edit '+x.n;$('inN').value=x?x.n:'';
-const s=x?x.ts:kind==='req'?ctx.start:(day===todayKey()?Math.min(now,1380):540),m=x?x.m:kind==='req'?(ctx.target?ctx.target.m:Math.min(60,ctx.g1-ctx.start)):60;$('inNote').value='';
+const gp=kind==='add'&&ctx&&ctx.gap?ctx:null;const s=x?x.ts:gp?gp.start:kind==='req'?ctx.start:(day===todayKey()?Math.min(now,1380):540),m=x?x.m:gp?gp.m:kind==='req'?(ctx.target?ctx.target.m:Math.min(60,ctx.g1-ctx.start)):60;$('inNote').value='';
 $('inS').value=hhmm(s);$('inE').value=hhmm(Math.min(s+m,1439));$('inH').value=Math.floor(m/60);$('inM').value=m%60;
 $('shErr').textContent='';renderSheet();renderSug();$('back').style.display='flex';if(kind!=='edit')setTimeout(()=>{try{$('inN').focus()}catch(_){}},50)}
 function closeSheet(){$('back').style.display='none';sh=null}
@@ -461,10 +475,10 @@ let list=stats();if(q)list=list.filter(s=>s.n.toLowerCase().includes(q)&&s.n.toL
 if(!list.length){el.style.display='none';el.innerHTML='';return}
 el.innerHTML=list.map((s,i)=>`<button type="button" data-i="${i}" role="option"><i style="background:${P[s.c]?P[s.c][0]:P[5][0]}"></i><span>${esc(s.n)}</span><small>avg ${dur(s.avg)} · ${s.cnt}×</small></button>`).join('');el.style.display='block';
 el.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{pickSug(list[+b.dataset.i],true)}))}
-function fillDur(s){const avg=s.avg;$('inH').value=Math.floor(avg/60);$('inM').value=avg%60;const st=parseT($('inS').value);if(!isNaN(st))$('inE').value=hhmm(Math.min(st+avg,1439));sh.filled=s;renderSheet()}
+function fillDur(s){let avg=s.avg;if(sh&&sh.gap){const st=parseT($('inS').value);if(!isNaN(st))avg=Math.max(5,Math.min(avg,sh.gap.g1-st))}$('inH').value=Math.floor(avg/60);$('inM').value=avg%60;const st=parseT($('inS').value);if(!isNaN(st))$('inE').value=hhmm(Math.min(st+avg,1439));sh.filled=s;renderSheet()}
 /* ---------- rotary dial: one turn = 2 hours; faster spins move further ---------- */
 const dial={f:60,ang:null,t:0,lastH:-1};
-function dialMax(){if(!sh)return 1440;const s=parseT($('inS').value),cap=sh.kind==='req'?sh.req.g1:1440;return(sh.tab==='t'&&!isNaN(s))?Math.max(5,cap-s):1440}
+function dialMax(){if(!sh)return 1440;const s=parseT($('inS').value),cap=sh.kind==='req'?sh.req.g1:sh.gap?sh.gap.g1:1440;return(sh.tab==='t'&&!isNaN(s))?Math.max(5,cap-s):1440}
 function dialFromInputs(){if(!sh)return;let m;if(sh.tab==='d')m=(+$('inH').value||0)*60+(+$('inM').value||0);else{const s=parseT($('inS').value);let e=parseT($('inE').value);if(e===0||e===1439)e=1440;m=(isNaN(s)||isNaN(e)||e<=s)?60:e-s}dial.f=Math.max(5,m);drawDial()}
 function drawDial(){const m=Math.max(5,Math.round(dial.f/5)*5),a=((m%120)/120)*360,R=74;const pol=(d,r)=>[(100+r*Math.sin(d*Math.PI/180)).toFixed(1),(100-r*Math.cos(d*Math.PI/180)).toFixed(1)];
 let h=`<circle cx="100" cy="100" r="${R}" fill="none" stroke-width="24" style="stroke:var(--track)"/>`;
@@ -680,6 +694,8 @@ updBadge();renderReqOverlay();applyMode();renderPanel()}
 
 /* ---------- friends panel ---------- */
 function closeP(){$('back2').style.display='none';panel=null;confirmRm=null}
+let statSort='cnt';
+function openStats(){closeMenu();panel={kind:'stats'};renderPanel();$('back2').style.display='flex'}
 function openFriends(){panel={kind:'friends'};renderPanel();$('back2').style.display='flex'}
 function openReview(id){panel={kind:'review',id};renderPanel();$('back2').style.display='flex'}
 function reqRow(r,inc){const c=fcol(inc?r.fc:(me?me.c:5));const when=dayLbl(r.day)+' · '+fmt(r.ts)+'–'+fmt(r.ts+r.m);
@@ -688,8 +704,16 @@ return`<div class="li"><i class="dot" style="background:${c[0]}"></i><div style=
 (inc&&r.status==='pending'?`<button class="btn2" data-a="decline" data-id="${r.id}">Decline</button><button class="btn2 pri" data-a="accept" data-id="${r.id}">Accept</button>`:'')+
 (!inc&&r.status==='pending'?`<button class="btn2" data-a="cancel" data-id="${r.id}">Cancel</button>`:'')+'</div>'}
 function renderPanel(){if(!panel)return;const el=$('sheet2');const keep={};['em','pw','joinIn','myName','pokeIn'].forEach(id=>{const i=$(id);if(i)keep[id]=i.value});
-let h=`<div class="row" style="justify-content:space-between;margin-bottom:4px"><h3>${panel.kind==='review'?'Spot request':panel.kind==='poke'?'Check-in':'Friends and sharing'}</h3><button class="x" data-a="close" aria-label="Close">&times;</button></div>`;
-if(panel.kind==='poke'){const p=pokesIn.find(q=>q.id===panel.id);
+let h=`<div class="row" style="justify-content:space-between;margin-bottom:4px"><h3>${panel.kind==='stats'?'Your activities':panel.kind==='review'?'Spot request':panel.kind==='poke'?'Check-in':'Friends and sharing'}</h3><button class="x" data-a="close" aria-label="Close">&times;</button></div>`;
+if(panel.kind==='stats'){const L=stats(),tot=L.reduce((a,x)=>a+x.cnt,0);
+const srt={cnt:(a,b)=>b.cnt-a.cnt||b.last.localeCompare(a.last),avg:(a,b)=>b.tot/b.cnt-a.tot/a.cnt,max:(a,b)=>b.max-a.max,az:(a,b)=>a.n.localeCompare(b.n)};
+L.sort(srt[statSort]||srt.cnt);
+h+=`<p class="muted" style="margin:2px 0 8px">${L.length?L.length+' activit'+(L.length===1?'y':'ies')+' logged '+tot+' time'+(tot===1?'':'s'):'Nothing logged yet.'}</p>`;
+if(L.length){h+=`<div class="chips cwrap">`+[['cnt','Most logged'],['avg','Longest average'],['max','Longest ever'],['az','A to Z']].map(([k,t])=>`<span class="chip${statSort===k?' on':''}" data-a="statSort" data-k="${k}" role="button">${t}</span>`).join('')+`</div>`;
+h+=L.map(x=>`<div class="li" style="align-items:flex-start"><i class="dot" style="background:${P[x.c]?P[x.c][0]:P[5][0]};margin-top:6px"></i><div style="flex:1;min-width:0"><b>${esc(x.n)}</b> <small>${x.cnt}\u00d7 \u00b7 ${dur(x.tot)} total</small>
+<div style="display:flex;gap:6px;margin-top:6px">${[['Shortest',x.min],['Average',Math.round(x.tot/x.cnt)],['Longest',x.max]].map(([t,v])=>`<div style="flex:1;border:0.5px solid var(--line2);border-radius:10px;padding:5px 4px;text-align:center"><div style="font-size:11px;color:var(--muted)">${t}</div><div style="font-weight:600;font-size:15px">${dur(v)}</div></div>`).join('')}</div></div></div>`).join('')}
+else h+=`<p class="hint">Log a few activities and they'll show up here with how long they usually take.</p>`}
+else if(panel.kind==='poke'){const p=pokesIn.find(q=>q.id===panel.id);
 if(!p||p.status!=='pending')h+=`<p class="muted">${p?'You already answered this one.':'This check-in is gone.'}</p>`;
 else{const cur=nowActivity(),names=[...new Set([...stats().map(s=>s.n),...DEFAULTS])].filter(n=>n&&n!==cur).slice(0,10);
 h+=`<p style="margin:6px 0 10px"><b>${esc(p.fromName)}</b> wants to know what you’re doing right now.</p><div class="chips cwrap">`+(cur?`<span class="chip on" data-a="pokeAns" data-n="${esc(cur)}">Still: ${esc(cur)}</span>`:'')+names.map(n=>`<span class="chip" data-a="pokeAns" data-n="${esc(n)}">${esc(n)}</span>`).join('')+`</div>
@@ -728,6 +752,7 @@ $('back2').addEventListener('click',e=>{if(e.target===$('back2'))closeP()});
 $('sheet2').addEventListener('click',async e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,id=b.dataset.id,u=b.dataset.u;const fe=s=>{const x=$('frErr');if(x)x.textContent=s};
 try{
 if(a==='close')closeP();
+else if(a==='statSort'){statSort=b.dataset.k;renderPanel()}
 else if(a==='accept')acceptReq(id);else if(a==='decline')declineReq(id);
 else if(a==='cancel'){await FB.del('requests/'+id);msg('Request cancelled.')}
 else if(a==='retry'){location.reload()}
@@ -748,6 +773,7 @@ else if(a==='join'||a==='joinPending'){const nm=await joinCode(a==='join'?$('joi
 else if(a==='saveName'){const v=$('myName').value.trim().slice(0,24);if(!v){fe('Enter a name.');return}me.name=v;await FB.set('users/'+me.uid,{name:v,c:me.c,updated:Date.now()},true);msg('Saved.');applyMode();renderPanel()}
 else if(a==='myColor'){me.c=+b.dataset.c;await FB.set('users/'+me.uid,{name:me.name,c:me.c,updated:Date.now()},true);renderPanel()}
 }catch(err){if(a==='google'||a==='emIn'||a==='emUp'){authErr=authMsg(err);renderPanel()}else fe(fbErr(err))}});
+$('stBtn').addEventListener('click',openStats);
 $('frBtn').addEventListener('click',()=>{closeMenu();openFriends()});
 $('backMine').addEventListener('click',()=>{viewF=null;applyMode()});
 $('fcap').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&&b.dataset.a==='poke'){sendPoke(shownF()).then(applyMode);return}if(friends.length<2)return;const f=shownF(),i=friends.indexOf(f);viewF=friends[(i+1)%friends.length].uid;applyMode()});
