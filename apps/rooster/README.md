@@ -2,6 +2,16 @@
 
 Time management as a coil of gooey tubes. Live at https://pablokm.github.io/ISLANAUT/apps/rooster/
 
+## Timeline world (tap the date)
+
+Tapping the date at the top opens a 3D scene in a white void: one line running ahead through your days, one hour per world unit.
+Your low-poly rooster (extruded from the traced design pieces) walks it. Drag up, or hold the arrows to run; the double arrows hop a day.
+- The line is coloured by your activities and ends at the latest one. Past that it dashes on, so you can keep walking to plan further out.
+- The flag button plants a marker where the rooster stands. Set its title, date, time, length and colour. It is saved as a locked
+  activity (`ev: 1`) on that day, so it shows in the day view and syncs like any other activity. Tap a flag to edit or delete it.
+- Overhead flips to a flat view of the whole line: drag to scroll, pinch to zoom, tap the line to move the rooster, tap a flag to edit.
+- The renderer is a small canvas painter in `index.html` (no libraries), so it works offline and in the claude.ai version.
+
 ## Sharing (Firebase)
 
 Sign-in, cloud saving, friends and spot requests use the Firebase project `rooster-50ce9`.
