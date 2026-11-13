@@ -9,6 +9,7 @@ Your low-poly rooster (extruded from the traced design pieces) walks it. Drag up
 - The line is coloured by your activities and ends at the latest one. Past that it dashes on, so you can keep walking to plan further out.
 - The flag button plants a marker where the rooster stands. Set its title, date, time, length and colour. It is saved as a locked
   activity (`ev: 1`) on that day, so it shows in the day view and syncs like any other activity. Tap a flag to edit or delete it.
+- Look farther / Look closer (or pinch) raises and tilts the camera so events days ahead stay on screen; far flags grow with distance and labels are placed nearest-first.
 - Overhead flips to a flat view of the whole line: drag to scroll, pinch to zoom, tap the line to move the rooster, tap a flag to edit.
 - The renderer is a small canvas painter in `index.html` (no libraries), so it works offline and in the claude.ai version.
 

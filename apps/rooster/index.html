@@ -140,7 +140,7 @@ input[type=time]{flex:1}
 <div id="world" aria-hidden="true">
 <canvas id="wcv" aria-label="Your timeline ahead: a line with a rooster walking along it"></canvas>
 <div class="wtop"><button class="wbtn" id="wClose" aria-label="Back to my day">&times;</button><div class="wread"><b id="wRead"></b><span id="wSub"></span></div><button class="wbtn pill" id="wView" aria-label="Flat overhead view">Overhead</button></div>
-<div class="wchips"><button id="wToday">Today</button><button id="wOpen">Open this day</button></div>
+<div class="wchips"><button id="wToday">Today</button><button id="wOpen">Open this day</button><button id="wLook">Look farther</button></div>
 <div id="wHint"></div>
 <div class="wbar">
 <button class="wbtn" id="wDm" aria-label="Back one day">&#171;</button>
@@ -816,9 +816,9 @@ else if(a==='myColor'){me.c=+b.dataset.c;await FB.set('users/'+me.uid,{name:me.n
 (function(){
 const DAYU=24;                       // world units per day (1 unit = 1 hour)
 const cv=$('wcv'),g=cv.getContext('2d');
-const MAXZ=366*DAYU,NEAR=0.4,FOG0=16,FOG1=54;
+const MAXZ=366*DAYU,NEAR=0.4,FOG0=70,FOG1=250;
 let isOpen=false,raf=0,Wd=0,Hd=0,dpr=1,lastT=0,readTxt='',hits=[],gotLabels=[];
-const st={z:0,zt:0,zGo:null,yaw:0,face:1,phase:0,moving:0,hold:0,holdT:0,vel:0,top:false,ov:{c:0,sc:10},plant:null,items:[],evs:[],zEnd:0,refT:0,keys:{}};
+const st={z:0,zt:0,zGo:null,yaw:0,face:1,phase:0,moving:0,hold:0,holdT:0,vel:0,top:false,look:.72,lookV:.72,ov:{c:0,sc:10},plant:null,items:[],evs:[],zEnd:0,refT:0,keys:{}};
 
 /* ----- dates <-> world position ----- */
 const dayN=k=>{const [y,m,d]=k.split('-').map(Number);return Math.round(Date.UTC(y,m-1,d)/864e5)};
@@ -855,7 +855,7 @@ const mixW=(h,a,sh)=>{const c=RGB(h);sh=sh||1;const f=v=>Math.max(0,Math.min(255
 /* ----- tiny 3D camera ----- */
 let cam={px:0,py:0,pz:0,r:[1,0,0],u:[0,1,0],f:[0,0,1],F:600};
 const nrm=v=>{const l=Math.hypot(v[0],v[1],v[2])||1;return[v[0]/l,v[1]/l,v[2]/l]};
-function setCam(){if(st.top)return;const cp=st.cp||[3.4,4.8,-9.5,1.1,0.4,7];const px=cp[0],py=cp[1],pz=st.zt+cp[2],tx=cp[3],ty=cp[4],tz=st.zt+cp[5];
+function setCam(){if(st.top)return;const NEAR_C=[3.4,5.0,-9.5,1.0,.3,8],FAR_C=[2.8,9,-16,.6,0,22],L=st.lookV;const cp=st.cp||NEAR_C.map((v,i)=>v+(FAR_C[i]-v)*L);const px=cp[0],py=cp[1],pz=st.zt+cp[2],tx=cp[3],ty=cp[4],tz=st.zt+cp[5];
 const f=nrm([tx-px,ty-py,tz-pz]),r=nrm([f[2],0,-f[0]]),u=[f[1]*r[2]-f[2]*r[1],f[2]*r[0]-f[0]*r[2],f[0]*r[1]-f[1]*r[0]];
 cam={px,py,pz,r,u,f,F:Math.min(Wd,Hd*0.62)*(st.cf||1.7)}}
 const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
@@ -904,42 +904,44 @@ list.sort((a,b)=>b.d-a.d);for(const f of list)poly(f.pw,f.col,f.sh,'#0E3C78',.8)
 for(const f of EYE){const pw=f.pts.map(W),n=Wn(f.n);if(dot(n,[pw[0][0]-cam.px,pw[0][1]-cam.py,pw[0][2]-cam.pz])>=0)continue;poly(pw,f.col,1)}}
 
 /* ----- 3D frame ----- */
-function marker(o,i,placed){const base=toCam([0,0,o.z0]);if(base[2]<NEAR+.5)return;const a=fogA(base[2]);if(a>.97)return;
+function marker(o,i,placed,labels){const base=toCam([0,0,o.z0]);if(base[2]<NEAR+.5)return;const a=fogA(base[2]);if(a>.97)return;
 let k=1;if(st.plant&&st.plant.id===o.id){const t=(performance.now()-st.plant.t0)/500;if(t<1)k=Math.max(.05,Math.min(1.2,1-Math.pow(1-t,2)*Math.cos(t*10)));else st.plant=null}
-const H=2.7*k,top=toCam([0,H,o.z0]),tb=prj(base),tt=prj(top),sc=cam.F/base[2],col=P[o.c][0],dk=P[o.c][1];
+const gs=Math.max(1,Math.min(2.4,base[2]/22)),H=2.7*k*gs,top=toCam([0,H,o.z0]),tb=prj(base),tt=prj(top),sc=cam.F/base[2],col=P[o.c][0],dk=P[o.c][1];
 // ground ring
-const ring=[];for(let q=0;q<14;q++){const an=q/14*2*Math.PI;ring.push([Math.sin(an)*.62,.02,o.z0+Math.cos(an)*.62])}poly(ring,col,1,dk,1.2);
-g.globalAlpha=1-a;g.strokeStyle=dk;g.lineWidth=Math.max(1.6,sc*.07);g.lineCap='round';g.beginPath();g.moveTo(tb[0],tb[1]);g.lineTo(tt[0],tt[1]);g.stroke();g.globalAlpha=1;
-poly([[0,H,o.z0],[1.15,H-.42*k,o.z0],[0,H-.84*k,o.z0]],col,1,dk,1.4);
-// label card
-const fp=Math.max(10,Math.min(15,sc*.26));if(base[2]>40)return;
-g.font='700 '+fp+'px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';const w1=g.measureText(o.n).width;g.font='500 '+(fp-2)+'px -apple-system,sans-serif';const t2=tm(o),w2=g.measureText(t2).width;
-const w=Math.max(w1,w2)+16,h=fp*2.35+8;let x=tt[0]-w/2,y=tt[1]-h-6-(1-k)*0;x=Math.max(4,Math.min(Wd-w-4,x));
-for(let tries=0;tries<5;tries++){if(placed.some(r=>x<r.x+r.w+2&&r.x<x+w+2&&y<r.y+r.h+2&&r.y<y+h+2))y-=h+4;else break}
-placed.push({x,y,w,h});g.globalAlpha=1-a;g.fillStyle='rgba(255,255,255,.96)';g.strokeStyle=col;g.lineWidth=2;rr(x,y,w,h,8);g.fill();g.stroke();
+const ring=[];for(let q=0;q<14;q++){const an=q/14*2*Math.PI;ring.push([Math.sin(an)*.62*gs,.02,o.z0+Math.cos(an)*.62*gs])}poly(ring,col,1,dk,1.2);
+g.globalAlpha=1-a;g.strokeStyle=dk;g.lineWidth=Math.max(2,sc*.07*gs);g.lineCap='round';g.beginPath();g.moveTo(tb[0],tb[1]);g.lineTo(tt[0],tt[1]);g.stroke();g.globalAlpha=1;
+poly([[0,H,o.z0],[1.15*gs,H-.42*k*gs,o.z0],[0,H-.84*k*gs,o.z0]],col,1,dk,1.4);
+// label card (drawn later, nearest first, hidden if it would collide)
+const fp=Math.max(10.5,Math.min(15,sc*.26*gs));if(base[2]>200)return;
+labels.push({d:base[2],fn:()=>{g.font='700 '+fp+'px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';const w1=g.measureText(o.n).width;g.font='500 '+(fp-2)+'px -apple-system,sans-serif';const t2=tm(o),w2=g.measureText(t2).width;
+const w=Math.max(w1,w2)+16,h=fp*2.35+8;let x=tt[0]-w/2,y=tt[1]-h-6;x=Math.max(4,Math.min(Wd-w-4,x));
+let ok=false;for(let tries=0;tries<6;tries++){if(y<112){break}if(placed.some(r=>x<r.x+r.w+2&&r.x<x+w+2&&y<r.y+r.h+2&&r.y<y+h+2))y-=h+4;else{ok=true;break}}
+if(!ok)return;placed.push({x,y,w,h});g.globalAlpha=1-a;g.fillStyle='rgba(255,255,255,.96)';g.strokeStyle=col;g.lineWidth=2;rr(x,y,w,h,8);g.fill();g.stroke();
 g.fillStyle=col;rr(x,y,5,h,3);g.fill();g.fillStyle='#1F1E1C';g.font='700 '+fp+'px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';g.textAlign='left';g.textBaseline='middle';g.fillText(o.n,x+11,y+h*.32);
 g.fillStyle='#5F5E5A';g.font='500 '+(fp-2)+'px -apple-system,sans-serif';g.fillText(t2,x+11,y+h*.73);g.globalAlpha=1;
-hits.push({id:o.id,k:o.k,x:Math.min(x,tb[0]-14),y:y,w:Math.max(w,28),h:tb[1]-y+6})}
+hits.push({id:o.id,k:o.k,x:Math.min(x,tb[0]-14),y:y,w:Math.max(w,28),h:tb[1]-y+6})}});
+// the pole itself is always tappable
+hits.push({id:o.id,k:o.k,x:tb[0]-16,y:tt[1]-4,w:32,h:tb[1]-tt[1]+8})}
 function rr(x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()}
-function draw3D(){const z0=st.zt-10,z1=st.zt+62;
+function draw3D(){const z0=st.zt-10,z1=st.zt+190;
 // the line: base, activities, dashed road beyond the end
 const bz1=Math.min(st.zEnd,z1),bz0=Math.max(0,z0);
 if(bz1>bz0)poly(quad(-.55,.55,bz0,bz1,0),'#E2E0D8',1,'#CFCDC4',1);
 for(const o of st.items){if(o.z1<z0||o.z0>z1)continue;poly(quad(-.55,.55,Math.max(o.z0,0),o.z1,.005),P[o.c][0],1,P[o.c][1],1)}
-for(let z=Math.max(st.zEnd+.3,Math.floor(z0)+.3);z<z1;z+=1){poly(quad(-.12,.12,z,z+.45,0),'#D6D4CB',1)}
+for(let z=Math.max(st.zEnd+.3,Math.floor(z0)+.3);z<z1;z+=z<st.zt+60?1:2.5){const far=Math.max(1,(z-st.zt)/60);poly(quad(-.12*far,.12*far,z,z+.45*far,0),'#D6D4CB',1)}
 if(st.zEnd>=z0&&st.zEnd<=z1)poly(quad(-1.1,1.1,st.zEnd,st.zEnd+.22,.01),'#2C2C2A',1);
 // day gates & hour ticks
-const n0=Math.max(0,Math.floor(z0/DAYU)),n1=Math.ceil(z1/DAYU),objs=[];
+const n0=Math.max(0,Math.floor(z0/DAYU)),n1=Math.ceil(z1/DAYU),objs=[],gl=[];
 for(let n=n0;n<=n1;n++){const zz=n*DAYU;if(zz>=z0&&zz<=z1)poly(quad(-1.9,1.9,zz-.05,zz+.05,.01),'#B4B2A9',1);
-for(const h of[6,12,18]){const q=zz+h;if(q>=z0&&q<=z1)poly(quad(-1.2,-.75,q-.025,q+.025,.01),'#CFCDC4',1)}
-if(zz>=st.zt-6)objs.push({d:toCam([0,0,zz])[2],fn:()=>{const b=toCam([-2.1,.1,zz]);if(b[2]<NEAR+.3)return;const s=prj(b),a=fogA(b[2]);text(dLong(keyN(T0()+n)),s[0],s[1],Math.max(10,Math.min(15,cam.F/b[2]*.3)),'#6B6A64',700,'right',a)}})}
-const placed=[];
-st.evs.forEach((o,i)=>{if(o.z0<z0||o.z0>z1)return;objs.push({d:toCam([0,0,o.z0])[2],fn:()=>marker(o,i,placed)})});
+for(const h of[6,12,18]){const q=zz+h;if(q>=z0&&q<=st.zt+60)poly(quad(-1.2,-.75,q-.025,q+.025,.01),'#CFCDC4',1)}
+if(zz>=st.zt-6)objs.push({d:toCam([0,0,zz])[2],fn:()=>{const b=toCam([-2.1,.1,zz]);if(b[2]<NEAR+.3)return;const s=prj(b),a=fogA(b[2]);if(s[1]<112||gl.some(y=>Math.abs(y-s[1])<19))return;gl.push(s[1]);text(dLong(keyN(T0()+n)),s[0],s[1],Math.max(10,Math.min(15,cam.F/b[2]*.3)),'#6B6A64',700,'right',a)}})}
+const placed=[],labels=[];
+st.evs.forEach((o,i)=>{if(o.z0<z0||o.z0>z1)return;objs.push({d:toCam([0,0,o.z0])[2],fn:()=>marker(o,i,placed,labels)})});
 objs.push({d:toCam([0,0,st.z])[2],fn:drawRooster});
 objs.sort((a,b)=>b.d-a.d);
 // activity names beside the line
 for(const o of st.items){if(o.ev||o.z1<st.zt-4||o.z0>st.zt+24)continue;const mid=(Math.max(o.z0,0)+o.z1)/2,b=toCam([-.9,.15,mid]);if(b[2]<NEAR+1)continue;const s=prj(b),len=(o.z1-o.z0)*cam.F/b[2]*.3;if(len<22)continue;text(o.n,s[0],s[1],Math.max(9,Math.min(13,cam.F/b[2]*.2)),P[o.c][1],600,'right',fogA(b[2]))}
-for(const q of objs)q.fn()}
+for(const q of objs)q.fn();labels.sort((a,b)=>a.d-b.d).forEach(l=>l.fn())}
 
 /* ----- overhead (flat) view ----- */
 function layOver(){const sc=st.ov.sc,c=st.ov.c;return{sc,c,LX:Math.round(Wd*.36),Y:z=>Hd/2-(z-c)*sc}}
@@ -981,12 +983,12 @@ if(!hd&&st.zGo==null&&Math.abs(st.vel)>.05&&!st.drag){dz=st.vel*dt;st.vel*=Math.
 const nz=Math.max(0,Math.min(MAXZ,st.z+dz));dz=nz-st.z;st.z=nz;
 const mv=st.z-(st.prevZ==null?st.z:st.prevZ);st.prevZ=st.z;if(Math.abs(mv)>.0004){st.moving=1;st.phase+=Math.min(.55,Math.abs(mv)*4);st.face=mv<0?-1:1}else st.moving=0;
 const ty=st.face<0?Math.PI:0;let dy=ty-st.yaw;st.yaw+=dy*Math.min(1,dt*9);
-st.zt+=(st.z-st.zt)*Math.min(1,dt*10);
+st.zt+=(st.z-st.zt)*Math.min(1,dt*10);st.lookV+=(st.look-st.lookV)*Math.min(1,dt*7);
 // readout
 const s=splitZ(st.z),rt=dLong(s.k)+' · '+fmt(s.ts);if(rt!==readTxt){readTxt=rt;$('wRead').textContent=rt;$('wSub').textContent=rel(s.n)}
 dpr=Math.min(2,window.devicePixelRatio||1);const w=cv.clientWidth,h=cv.clientHeight;if(w!==Wd||h!==Hd||cv.width!==Math.round(w*dpr)){Wd=w;Hd=h;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr)}
 g.setTransform(dpr,0,0,dpr,0,0);g.fillStyle='#fff';g.fillRect(0,0,Wd,Hd);hits=[];
-if(st.top)drawTop();else{setCam();draw3D()}}
+if(st.top)drawTop();else{setCam();draw3D();const hh=Math.min(Hd*.19,128),gr=g.createLinearGradient(0,0,0,hh);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.62,'rgba(255,255,255,.94)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(0,0,Wd,hh)}}
 
 /* ----- controls ----- */
 const pt=new Map();let tapG=null,pinchD=0;
@@ -995,6 +997,7 @@ cv.addEventListener('pointerdown',e=>{try{cv.setPointerCapture(e.pointerId)}catc
 if(pt.size===1){tapG={x:e.clientX-r.left,y:e.clientY-r.top,t:performance.now(),mv:false};st.drag=true;st.vel=0;st.zGo=null}else{tapG=null;const v=[...pt.values()];pinchD=Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y)}});
 cv.addEventListener('pointermove',e=>{if(!pt.has(e.pointerId))return;const r=cv.getBoundingClientRect(),q={x:e.clientX-r.left,y:e.clientY-r.top},p=pt.get(e.pointerId),dx=q.x-p.x,dy=q.y-p.y;pt.set(e.pointerId,q);
 if(tapG&&Math.hypot(q.x-tapG.x,q.y-tapG.y)>9)tapG.mv=true;
+if(pt.size===2&&!st.top){const v=[...pt.values()],d=Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y);if(pinchD>0)setLook(st.look-(d-pinchD)/260);pinchD=d;return}
 if(pt.size===2&&st.top){const v=[...pt.values()],d=Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y);if(pinchD>0)zoomTop(d/pinchD,(v[0].y+v[1].y)/2);pinchD=d;return}
 if(pt.size!==1||!tapG||!tapG.mv)return;
 if(st.top){st.ov.c+=dy/st.ov.sc;st.ov.c=Math.max(-4,Math.min(MAXZ,st.ov.c))}
@@ -1003,8 +1006,10 @@ function up(e){const had=pt.has(e.pointerId);pt.delete(e.pointerId);if(!had)retu
 if(tapG&&!tapG.mv&&performance.now()-tapG.t<500){const h=hitAt(tapG.x,tapG.y);if(h){const o=st.evs.find(x=>x.id===h.id);if(o)openEv(o)}else if(st.top){const{sc,c,LX}=layOver();if(Math.abs(tapG.x-LX)<44){st.zGo=Math.max(0,Math.min(MAXZ,c+(Hd/2-tapG.y)/sc))}}}
 tapG=null}}
 cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+function setLook(v){st.look=Math.max(0,Math.min(1,v));$('wLook').textContent=st.look>.6?'Look closer':'Look farther'}
+$('wLook').addEventListener('click',()=>setLook(st.look>.6?0:1));
 function zoomTop(f,fy){const o=st.ov,z=o.c+(Hd/2-fy)/o.sc;o.sc=Math.max(.35,Math.min(140,o.sc*f));o.c=z-(Hd/2-fy)/o.sc}
-cv.addEventListener('wheel',e=>{e.preventDefault();if(st.top)zoomTop(Math.exp(-e.deltaY*.0015),e.clientY-cv.getBoundingClientRect().top);else{const d=-e.deltaY*.03;st.z=Math.max(0,Math.min(MAXZ,st.z+d));if(d)st.face=d<0?-1:1}},{passive:false});
+cv.addEventListener('wheel',e=>{e.preventDefault();if(e.ctrlKey&&!st.top){setLook(st.look+e.deltaY*.004);return}if(st.top)zoomTop(Math.exp(-e.deltaY*.0015),e.clientY-cv.getBoundingClientRect().top);else{const d=-e.deltaY*.03;st.z=Math.max(0,Math.min(MAXZ,st.z+d));if(d)st.face=d<0?-1:1}},{passive:false});
 function holdBtn(id,dir){const b=$(id);const on=e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(_){}st.hold=dir;st.holdT=0;st.vel=0;b.classList.add('on')},off=()=>{if(st.hold===dir)st.hold=0;b.classList.remove('on')};
 b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off);b.addEventListener('lostpointercapture',off);b.addEventListener('contextmenu',e=>e.preventDefault())}
 holdBtn('wFw',1);holdBtn('wBk',-1);
@@ -1014,7 +1019,7 @@ $('wOpen').addEventListener('click',()=>{const k=splitZ(st.z).k;closeWorld();loa
 $('wMark').addEventListener('click',()=>openEv(null));
 $('wClose').addEventListener('click',closeWorld);
 $('wView').addEventListener('click',()=>setTop(!st.top));
-function setTop(v){st.top=v;$('wView').textContent=v?'3D':'Overhead';$('wView').setAttribute('aria-label',v?'Back to walking':'Flat overhead view');$('wHint').textContent=v?'Drag to scroll · pinch to zoom · tap the line to move the rooster · tap a flag to edit it':'Drag up to walk · hold ▲ to run · tap the flag button to plant a marker';
+function setTop(v){st.top=v;$('wView').textContent=v?'3D':'Overhead';$('wLook').style.display=v?'none':'';$('wView').setAttribute('aria-label',v?'Back to walking':'Flat overhead view');$('wHint').textContent=v?'Drag to scroll · pinch to zoom · tap the line to move the rooster · tap a flag to edit it':'Drag up to walk · hold ▲ to run · pinch or tap Look farther to see further ahead';
 if(v){const zB=Math.max(st.zEnd,st.z)+1.5,zA=-.5,yT=Math.min(170,Hd*.24),yB=Hd-110;st.ov.sc=Math.max(.5,Math.min(60,(yB-yT)/(zB-zA)));st.ov.c=zB-(Hd/2-yT)/st.ov.sc}
 $('wHint').style.opacity=1;clearTimeout(setTop.t);setTop.t=setTimeout(()=>{$('wHint').style.opacity=0},4000)}
 window.addEventListener('keydown',e=>{if(!isOpen||$('back3').style.display==='flex'){if(isOpen&&e.key==='Escape')closeEv();return}
