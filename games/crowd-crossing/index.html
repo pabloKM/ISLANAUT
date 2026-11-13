@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#e8502e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Crowd Crossing">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<title>Crowd Crossing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#000; --ora:#e8502e; --mag:#e100e1; --yel:#ffd21f; --grn:#3fbf5a; }
+  html, body { margin:0; height:100%; overflow:hidden; background:var(--ora); touch-action:none;
+    font-family:"Trebuchet MS",system-ui,sans-serif; font-weight:900; color:#fff;
+    user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
+  canvas { position:fixed; inset:0; width:100%; height:100%; display:block; }
+  button { font-family:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+
+  /* HUD: plain heavy type with a hard black drop, like the pinball table */
+  #hud { position:fixed; left:0; right:0; top:0; display:none; align-items:center; gap:10px;
+    padding:calc(env(safe-area-inset-top) + 10px) 14px 0; pointer-events:none; text-shadow:0 3px 0 #000; }
+  #hud.show { display:flex; }
+  #lvl { font-size:24px; flex:1; }
+  #homeChip, #bonkChip { font-size:18px; }
+  #menuBtn { pointer-events:auto; width:46px; height:46px; border-radius:50%; border:4px solid #000; background:var(--mag);
+    color:#fff; font-size:22px; font-weight:900; padding:0; text-shadow:none; }
+
+  #hint { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 10px); transform:translateX(-50%);
+    font-size:17px; text-shadow:0 3px 0 #000; text-align:center; width:max-content; max-width:92vw;
+    pointer-events:none; opacity:0; transition:opacity .4s; }
+  #hint.show { opacity:1; }
+
+  .screen { position:fixed; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column;
+    padding:calc(env(safe-area-inset-top) + 14px) 18px calc(env(safe-area-inset-bottom) + 14px); box-sizing:border-box;
+    text-align:center; background:rgba(29,36,40,.84); text-shadow:0 3px 0 #000; }
+  .screen.show { display:flex; }
+  .wrap { width:min(340px, 92vw); }
+  .logo { font-family:Bangers,Impact,sans-serif; font-weight:400; margin:0; font-size:68px; line-height:.86; letter-spacing:2px;
+    color:var(--yel); -webkit-text-stroke:3px #000; paint-order:stroke fill; text-shadow:5px 5px 0 var(--mag); transform:rotate(-3deg); }
+  .logo span { color:#fff; display:block; }
+  .tag { margin:14px 0 14px; font-size:19px; color:var(--yel); }
+  .how { text-align:left; margin:0 0 6px; padding:0; list-style:none; font-size:15px; line-height:1.25; }
+  .how li { display:flex; gap:10px; align-items:center; margin:7px 0; }
+  .how b.n { flex:none; width:28px; height:28px; border-radius:50%; border:3px solid #000; display:grid; place-items:center;
+    font-family:Bangers,sans-serif; font-weight:400; font-size:18px; background:#fff; color:#000; text-shadow:none; }
+  .how b.n.g { background:var(--grn); color:#fff; }
+  .how b.n.m { border-color:var(--mag); }
+  .btn { display:block; width:100%; margin:12px 0 0; padding:8px 12px; font-family:Bangers,Impact,sans-serif; font-weight:400;
+    font-size:28px; letter-spacing:1px; color:#000; text-shadow:none; background:var(--yel); border:4px solid #000;
+    border-radius:0; box-shadow:6px 6px 0 rgba(0,0,0,.45); }
+  .btn:active { transform:translate(3px,3px); box-shadow:3px 3px 0 rgba(0,0,0,.45); }
+  .btn.mag { background:var(--mag); color:#fff; } .btn.small { font-size:21px; padding:5px 10px; }
+  .btn.ghost { background:#fff; }
+  .credit { margin:16px 0 0; font-size:13px; opacity:.85; }
+  h2 { font-family:Bangers,sans-serif; font-weight:400; font-size:46px; margin:0; letter-spacing:1px; color:var(--yel); -webkit-text-stroke:2px #000; paint-order:stroke fill; }
+  #clearScore { font-family:Bangers,sans-serif; font-weight:400; font-size:30px; margin:6px 0 0; }
+  #clearStats { margin:4px 0 0; font-size:16px; color:var(--yel); }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud">
+  <button id="menuBtn" aria-label="Menu">≡</button>
+  <div id="lvl">Street 1</div>
+  <div id="homeChip">HOME 0/3</div>
+  <div id="bonkChip">BONKS 0</div>
+</div>
+<div id="hint"></div>
+
+<div class="screen show" id="menu">
+  <div class="wrap">
+    <h1 class="logo">Crowd<span>Crossing</span></h1>
+    <p class="tag" id="tag">Cars only stop for crowds.</p>
+    <ul class="how">
+      <li><b class="n">↕</b><span id="how1"></span></li>
+      <li><b class="n">+</b><span id="how2"></span></li>
+      <li><b class="n g">3</b><span id="how3"></span></li>
+      <li><b class="n m">5</b><span id="how4"></span></li>
+    </ul>
+    <button class="btn" id="playBtn">Play</button>
+    <button class="btn mag small" id="restartBtn" style="display:none">Restart street</button>
+    <button class="btn ghost small" id="soundBtn">♪ Sound: On</button>
+    <p class="credit" id="credit"></p>
+  </div>
+</div>
+
+<div class="screen" id="clear">
+  <div class="wrap">
+    <h2 id="clearTitle">Everybody made it!</h2>
+    <p id="clearScore"></p>
+    <p id="clearStats"></p>
+    <button class="btn" id="nextBtn">Next street</button>
+    <button class="btn mag small" id="againBtn">Replay</button>
+    <button class="btn ghost small" id="menuBtn2">Menu</button>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+// =====================================================================
+//  CROWD CROSSING — a prototype by Claude (AI), made for PabloKM.
+//  Frogger turned inside out: you can't beat traffic alone, but every car
+//  stops for a crowd at least as big as the number on its roof.
+// =====================================================================
+const $ = id => document.getElementById(id);
+const cv = $('c'), X = cv.getContext('2d');
+
+const INK = '#1d1d24', CREAM = '#fffdf6', CHK = '#f2e4c2', ROAD = '#2f3a41', ORA = '#e8502e',
+      MAG = '#e100e1', YEL = '#ffd21f', GRN = '#3fbf5a', LAV = '#cdbfe6', LIME = '#d6ec2a';
+const CRIT = ['#5fb3e8', '#ff6fae', '#ffd21f', '#7ee08a', '#b0a2c4', '#ff9a3d', '#4fd6c8', '#f4f4f4'];
+const CARC = ['#e8502e', '#5fb3e8', '#e100e1', '#ffd21f', '#8a6cd1', '#4fd6c8', '#ff6fae'];
+const COLS = 7, W2 = COLS + 5, MITT = '#e8502e';
+
+// ---------------- saved progress (this browser only) ----------------
+const KEY = 'crowdCrossing.v1';
+const save = { lvl: 1, best: {}, sound: true };
+try { Object.assign(save, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
+const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) {} };
+
+// ---------------- text ----------------
+const TXT = {
+  tag: 'Cars only stop for crowds.', play: 'Play', cont: 'Continue · Street {n}', resume: 'Resume', restart: 'Restart street',
+  how1: 'Swipe, tap or use arrow keys to take a step', how2: 'Walk into a friend to hold hands', how3: 'Green number: your crowd is big enough, that car will stop',
+  how4: 'White number: too big for your crowd. Dodge it!', street: 'STREET {n}', clear: 'Everybody made it!', score: '{s} points',
+  stats: 'Best {b} · Bonks {k}', next: 'Next street', again: 'Replay', menu: 'Menu', soundOn: '♪ Sound: On', soundOff: '♪ Sound: Off',
+  credit: 'A prototype by Claude (AI) · made for PabloKM', made: 'MADE IT!', bring: 'Bring friends!',
+  hint1: 'Walk into friends to hold hands', hint2: 'Bigger crowd → more cars stop for you', hint3: 'Lead everyone across to the top'
+};
+const t = (k, v = {}) => (TXT[k] ?? k).replace(/\{(\w)\}/g, (_, x) => v[x] ?? '');
+const BONK = ['BONK!', 'POW!', 'WHAM!', 'BOINK!'];
+const STOP = ['SCREECH!', 'HONK!', 'ERRRK!'];
+const pick = a => a[Math.random() * a.length | 0];
+
+// ---------------- sound (tiny synth, no files) ----------------
+let AC = null;
+function ac() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (AC && AC.state === 'suspended') AC.resume(); return AC; }
+function tone(f, d, type = 'square', v = .06, slide = 0, delay = 0) {
+  if (!save.sound) return; const a = ac(); if (!a) return;
+  const t0 = a.currentTime + delay, o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t0);
+  if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, f * slide), t0 + d);
+  g.gain.setValueAtTime(v, t0); g.gain.exponentialRampToValueAtTime(.0001, t0 + d);
+  o.connect(g).connect(a.destination); o.start(t0); o.stop(t0 + d + .03);
+}
+const SCALE = [392, 440, 494, 587, 659, 784, 880, 988, 1175, 1319, 1568];
+const sfx = {
+  step: () => tone(520, .05, 'triangle', .05),
+  join: n => { const f = SCALE[Math.min(n - 2, SCALE.length - 1)]; tone(f, .12, 'triangle', .08); tone(f * 1.5, .1, 'triangle', .05, 0, .06); },
+  honk: () => { tone(340, .16, 'square', .045); tone(270, .2, 'square', .045, 0, .13); },
+  bonk: () => { tone(200, .28, 'sawtooth', .07, .3); tone(90, .2, 'square', .05, .5, .05); },
+  home: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, .14, 'triangle', .07, 0, i * .08)),
+  win: () => [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => tone(f, .16, 'square', .045, 0, i * .1))
+};
+
+// ---------------- seeded random (each street is always the same) ----------------
+let seed = 1;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+
+// ---------------- world state ----------------
+let rows = [], ROWS = 0, cars = [], chain = [], strays = [], party = [], pops = [], Q = [];
+let level = 1, home = 0, total = 0, bonks = 0, score = 0, state = 'menu', inLevel = false, shake = 0, clearT = 0, T = 0;
+let W = 0, H = 0, DPR = 1, cell = 40, ox = 0, oy = 0;
+const inputQ = [];
+
+function makeLevel(n) {
+  seed = (n * 7919 + 13) % 2147483647 || 1; for (let i = 0; i < 6; i++) rnd();
+  const groups = Math.min(1 + Math.ceil(n / 2), 3);
+  total = Math.min(2 + n, 10);
+  const medians = groups - 1;
+  const sB = Math.max(1, Math.round(total * .34));
+  const perMed = Array(medians).fill(0);
+  for (let i = 0; i < total - sB; i++) perMed[i % medians]++;
+  const reach = g => { let s = 1 + sB; for (let m = 0; m < g; m++) s += perMed[m]; return s; };
+
+  const up = [{ t: 'B' }];
+  for (let g = 0; g < groups; g++) {
+    let lanes = 2; if (n >= 3 && rnd() < .5) lanes = 3; if (n >= 7) lanes = 3;
+    for (let l = 0; l < lanes; l++) up.push({ t: 'R', g });
+    if (g < groups - 1) up.push({ t: 'S', m: g });
+  }
+  up.push({ t: 'G' });
+  rows = up.reverse(); ROWS = rows.length;
+
+  cars = []; strays = []; party = [];
+  let lane = 0;
+  rows.forEach((row, r) => {
+    if (row.t !== 'R') return;
+    const maxC = reach(row.g), dir = lane++ % 2 ? -1 : 1;
+    const sp = Math.min(3, .85 + rnd() * .7 + n * .09);
+    const k = 1 + (rnd() < .45 + n * .05 ? 1 : 0) + (n >= 5 && rnd() < .35 ? 1 : 0);
+    const off = rnd() * W2;
+    for (let i = 0; i < k; i++) {
+      const len = rnd() < .2 + n * .03 ? 2 : 1;
+      let num = Math.max(1, maxC - Math.floor(rnd() * rnd() * maxC));
+      if (len === 2) num = Math.min(maxC, num + 1);
+      if (n >= 4 && rnd() < .2) num = maxC + 1;            // a car you can only dodge
+      cars.push({ r, x: -2.5 + ((off + i * W2 / k) % W2), len, dir, sp, num, stopped: false, stopT: 0, jolt: 0, col: CARC[rnd() * CARC.length | 0] });
+    }
+  });
+
+  const place = (r, count) => {
+    const cols = [...Array(COLS).keys()].filter(c => !(r === ROWS - 1 && c === 3));
+    for (let i = cols.length - 1; i > 0; i--) { const j = rnd() * (i + 1) | 0; [cols[i], cols[j]] = [cols[j], cols[i]]; }
+    for (let i = 0; i < Math.min(count, cols.length); i++) strays.push({ c: cols[i], r, col: CRIT[rnd() * CRIT.length | 0], ph: rnd() * 6, fly: null, dizzy: 0 });
+  };
+  place(ROWS - 1, sB);
+  rows.forEach((row, r) => { if (row.t === 'S') place(r, perMed[row.m]); });
+  total = strays.length;
+
+  chain = [{ c: 3, r: ROWS - 1, pc: 3, pr: ROWS - 1, t: 1, col: LIME, ph: 0, leader: true, face: 1, wait: 0, fly: null, dizzy: 0 }];
+}
+
+// ---------------- positions & movement ----------------
+const ease = x => 1 - (1 - x) * (1 - x);
+function rpos(m) {
+  if (m.fly) { const f = m.fly, k = Math.min(1, f.t / f.dur);
+    return [f.x0 + (f.x1 - f.x0) * k, f.y0 + (f.y1 - f.y0) * k - Math.sin(k * Math.PI) * f.arc, k]; }
+  if (m.t !== undefined && m.t < 1) { const e = ease(m.t); return [m.pc + (m.c - m.pc) * e, m.pr + (m.r - m.pr) * e]; }
+  return [m.c, m.r];
+}
+function setPos(m, c, r) { const [x, y] = rpos(m); m.pc = x; m.pr = y; m.c = c; m.r = r; m.t = 0; m.fly = null; }
+function flyTo(m, c, r, dur, arc) { const [x, y] = rpos(m); m.fly = { x0: x, y0: y, x1: c, y1: r, t: 0, dur, arc }; m.c = c; m.r = r; m.pc = c; m.pr = r; m.t = 1; }
+const occupied = (c, r) => chain.some(m => m.c === c && m.r === r) || strays.some(s => s.c === c && s.r === r);
+function freeIn(r, c0) { for (let d = 0; d < COLS; d++) for (const c of [c0 - d, c0 + d]) if (c >= 0 && c < COLS && !occupied(c, r)) return c; return -1; }
+function safeNear(r, c) {
+  const order = []; for (let d = 0; d < ROWS; d++) { order.push(r + d); if (d) order.push(r - d); }
+  for (const rr of order) { if (rr < 0 || rr >= ROWS) continue; const ty = rows[rr].t;
+    if (ty === 'S' || ty === 'B') { const cc = freeIn(rr, c); if (cc >= 0) return [cc, rr]; } }
+  return null;
+}
+const startCell = m => { const c = freeIn(ROWS - 1, m.c); return c >= 0 ? [c, ROWS - 1] : (safeNear(ROWS - 1, m.c) || [m.c, ROWS - 1]); };
+function toStray(m, [c, r], dur, arc, dizzy) {
+  const [x, y] = rpos(m);
+  strays.push({ c, r, col: m.col, ph: m.ph || 0, dizzy: dizzy ? 1.8 : 0, spin: dizzy ? 1 : 0, fly: { x0: x, y0: y, x1: c, y1: r, t: 0, dur, arc } });
+}
+function scatter(m) {
+  const ty = rows[m.r].t;
+  const p = ((ty === 'S' || ty === 'B') && !strays.some(s => s.c === m.c && s.r === m.r)) ? [m.c, m.r] : (safeNear(m.r, m.c) || startCell(m));
+  toStray(m, p, .45, .6, false);
+}
+
+function tryMove(dc, dr) {
+  const L = chain[0], nc = L.c + dc, nr = L.r + dr;
+  if (nc < 0 || nc >= COLS || nr < 0 || nr >= ROWS) return;
+  const last = chain.length - 1;
+  for (let i = 1; i <= last; i++) if (chain[i].c === nc && chain[i].r === nr && (i !== last || last === 1)) return;
+  if (dc) L.face = dc;
+  const si = strays.findIndex(s => s.c === nc && s.r === nr);
+  if (si >= 0) {
+    const s = strays[si]; if (s.fly) return;
+    strays.splice(si, 1);
+    const m = { c: L.c, r: L.r, pc: s.c, pr: s.r, t: 0, col: s.col, ph: s.ph, dizzy: 0, fly: null };
+    setPos(L, nc, nr); chain.splice(1, 0, m);
+    sfx.join(chain.length); addPop(nc + .5, nr + .1, '×' + chain.length, GRN, .7, false);
+  } else {
+    for (let i = last; i > 0; i--) setPos(chain[i], chain[i - 1].c, chain[i - 1].r);
+    setPos(L, nc, nr); sfx.step();
+  }
+  if (rows[nr].t === 'G') deliver();
+  hud();
+}
+
+function deliver() {
+  const L = chain[0], fol = chain.slice(1);
+  if (!fol.length) addPop(L.c + .5, L.r + .2, t('bring'), YEL, .9, false);
+  else {
+    home += fol.length; sfx.home();
+    const pts = fol.length * 100 * chain.length; score += pts;   // bigger crowds are worth more together
+    addPop(L.c + .5, L.r + 1.1, '+' + pts, YEL, 1, false);
+    addPop(L.c + .5, L.r + .4, t('made'), GRN, 1.1, true); confetti(L.c + .5, L.r + .5, 30);
+    fol.forEach(m => {
+      const slot = party.length, px = (slot * 2.35 + .3) % (COLS - .6), py = slot % 2 ? -.1 : .12;
+      const [x, y] = rpos(m);
+      party.push({ x: px, y: py, col: m.col, ph: m.ph, fly: { x0: x, y0: y, x1: px, y1: py, t: 0, dur: .5, arc: .8 } });
+    });
+  }
+  chain = [L]; L.wait = .35;
+}
+
+function bonk(i) {
+  bonks++; shake = 12; sfx.bonk();
+  const m = chain[i], [x, y] = rpos(m);
+  addPop(x + .5, y + .3, pick(BONK), MAG, 1, true);
+  if (i === 0) {
+    const fol = chain.slice(1); chain = [m];
+    const c = freeIn(ROWS - 1, 3); flyTo(m, c < 0 ? 3 : c, ROWS - 1, .85, 3); m.dizzy = 1.8; m.spin = 1;
+    fol.forEach(scatter);
+  } else {
+    const rem = chain.splice(i);
+    rem.forEach((f, k) => k === 0 ? toStray(f, startCell(f), .85, 3, true) : scatter(f));
+  }
+  hud();
+}
+
+// ---------------- traffic ----------------
+function updCars(dt) {
+  for (const car of cars) {
+    const n = chain.length; let block = false, hit = -1;
+    const x0 = car.x, x1 = car.x + car.len;
+    for (let i = 0; i < chain.length; i++) {
+      const m = chain[i]; if (m.fly || m.r !== car.r) continue;
+      const a = m.c + .2, b = m.c + .8;
+      const body = b > x0 + .06 && a < x1 - .06;
+      const ahead = car.dir > 0 ? (a < x1 + .32 && b > x1 - .06) : (b > x0 - .32 && a < x0 + .06);
+      if (body || ahead) { if (n >= car.num) block = true; else if (body && hit < 0) hit = i; }
+    }
+    if (hit >= 0 && state === 'play') bonk(hit);
+    let gap = 99;
+    for (const o of cars) { if (o === car || o.r !== car.r) continue;
+      let d = car.dir > 0 ? o.x - x1 : x0 - (o.x + o.len); d = ((d % W2) + W2) % W2; if (d < gap) gap = d; }
+    if (block) {
+      if (!car.stopped) { car.stopped = true; car.jolt = 1; addPop(car.x + car.len / 2, car.r - .05, pick(STOP), YEL, .8, true); sfx.honk(); if (state === 'play') { score += 25 * car.num; hud(); } }
+      car.stopT = .35;
+    } else if (gap < .22) { /* waiting in the jam */ }
+    else if (car.stopT > 0) car.stopT -= dt;
+    else {
+      car.stopped = false; car.x += car.dir * car.sp * dt;
+      if (car.dir > 0 && car.x > COLS + 2.5) car.x -= W2;
+      if (car.dir < 0 && car.x + car.len < -2.5) car.x += W2;
+    }
+    car.jolt = Math.max(0, car.jolt - dt * 4);
+  }
+}
+
+// ---------------- effects ----------------
+function addPop(x, y, txt, col, life, burst) { pops.push({ x, y, txt, col, t: 0, life, burst }); }
+function confetti(x, y, n) { for (let i = 0; i < n; i++) Q.push({ x, y, vx: (Math.random() - .5) * 7, vy: -Math.random() * 6 - 2, l: 1 + Math.random(), col: pick(CRIT.concat([MAG, YEL])), r: Math.random() * 6 }); }
+
+// ---------------- update ----------------
+function update(dt) {
+  T += dt; shake *= .86;
+  if (state === 'paused') return;
+  const L = chain[0];
+  for (const m of chain) { if (m.t < 1) m.t = Math.min(1, m.t + dt / .12); if (m.fly && (m.fly.t += dt) >= m.fly.dur) m.fly = null; if (m.dizzy > 0) m.dizzy -= dt; }
+  for (const s of strays) { if (s.fly && (s.fly.t += dt) >= s.fly.dur) s.fly = null; if (s.dizzy > 0) s.dizzy -= dt; }
+  for (const p of party) if (p.fly && (p.fly.t += dt) >= p.fly.dur) p.fly = null;
+  if (L.wait > 0) { L.wait -= dt; if (L.wait <= 0) { const c = freeIn(ROWS - 1, 3); flyTo(L, c < 0 ? 3 : c, ROWS - 1, .7, 2.2); } }
+  if (state === 'play' && inputQ.length && !L.fly && !(L.wait > 0) && L.t >= .7) { const [dc, dr] = inputQ.shift(); tryMove(dc, dr); }
+  updCars(dt);
+  for (const p of pops) p.t += dt; pops = pops.filter(p => p.t < p.life);
+  for (const q of Q) { q.vy += 12 * dt; q.x += q.vx * dt; q.y += q.vy * dt; q.l -= dt; q.r += dt * 8; } Q = Q.filter(q => q.l > 0);
+  if (state === 'play' && home >= total && !L.fly && !(L.wait > 0)) { clearT += dt; if (clearT > .5) showClear(); }
+  hint();
+}
+
+// ---------------- drawing ----------------
+function rr(x, y, w, h, r) { X.beginPath(); X.roundRect ? X.roundRect(x, y, w, h, r) : X.rect(x, y, w, h); }
+function circ(x, y, r, fill, stroke, lw) { X.beginPath(); X.arc(x, y, r, 0, Math.PI * 2); if (fill) { X.fillStyle = fill; X.fill(); } if (stroke) { X.strokeStyle = stroke; X.lineWidth = lw; X.stroke(); } }
+function starburst(x, y, r, col) {
+  X.beginPath(); for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2, q = i % 2 ? r * .58 : r; X.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q); }
+  X.closePath(); X.fillStyle = col; X.fill(); X.lineWidth = Math.max(2, cell * .05); X.strokeStyle = INK; X.stroke();
+}
+function star5(x, y, r, col) {
+  X.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, q = i % 2 ? r * .45 : r; X.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q); }
+  X.closePath(); X.fillStyle = col; X.fill(); X.lineWidth = 1.5; X.strokeStyle = INK; X.stroke();
+}
+
+// A crowd member: a round bean with floating mittens (and a flag, if leading)
+function critter(px, py, col, o = {}) {
+  const s = cell, hop = o.hop || 0;
+  X.save(); X.translate(px, py + s * .06);
+  X.fillStyle = 'rgba(0,0,0,.22)'; X.beginPath(); X.ellipse(0, s * .3, s * .22 * (1 - hop * .3), s * .065, 0, 0, Math.PI * 2); X.fill();
+  X.translate(0, -hop * s * .22);
+  if (o.rot) X.rotate(o.rot);
+  const w = s * .29, h = s * .33, lw = Math.max(2, s * .055);
+  X.fillStyle = INK; X.beginPath(); X.ellipse(-w * .45, h * .93, w * .33, h * .17, 0, 0, Math.PI * 2); X.ellipse(w * .45, h * .93, w * .33, h * .17, 0, 0, Math.PI * 2); X.fill();
+  // stubby arms ending in mittens
+  const hy = o.wave ? -h * .6 + Math.sin(T * 14) * h * .1 : h * .3;
+  const arm = (sx, ey) => {
+    X.lineCap = 'round'; X.strokeStyle = INK; X.lineWidth = s * .1;
+    X.beginPath(); X.moveTo(sx * w * .8, 0); X.lineTo(sx * w * 1.2, ey); X.stroke();
+    X.strokeStyle = col; X.lineWidth = s * .05; X.stroke();
+    circ(sx * w * 1.22, ey, s * .08, MITT, INK, lw * .8);
+  };
+  arm(-1, hy);
+  if (o.leader) {
+    X.strokeStyle = INK; X.lineWidth = lw * .8; X.beginPath(); X.moveTo(w * 1.22, h * .3); X.lineTo(w * 1.22, -h * 1.75); X.stroke();
+    const fl = Math.sin(T * 6) * s * .03;
+    X.beginPath(); X.moveTo(w * 1.22, -h * 1.75); X.lineTo(w * 1.22 + s * .34, -h * 1.5 + fl); X.lineTo(w * 1.22, -h * 1.22); X.closePath();
+    X.fillStyle = MAG; X.fill(); X.stroke();
+  }
+  arm(1, o.leader ? h * .3 : hy);
+  X.beginPath(); X.ellipse(0, 0, w, h, 0, 0, Math.PI * 2); X.fillStyle = col; X.fill(); X.lineWidth = lw; X.strokeStyle = INK; X.stroke();
+  X.fillStyle = 'rgba(255,255,255,.4)'; X.beginPath(); X.ellipse(-w * .42, -h * .48, w * .17, h * .22, -.4, 0, Math.PI * 2); X.fill();
+  const lk = (o.look || 0) * w * .16;
+  if (o.dizzy) {
+    X.strokeStyle = INK; X.lineWidth = lw * .7;
+    for (const sx of [-1, 1]) { X.beginPath(); X.moveTo(sx * w * .32 + lk - w * .1, -h * .22); X.lineTo(sx * w * .32 + lk + w * .1, -h * .02); X.moveTo(sx * w * .32 + lk + w * .1, -h * .22); X.lineTo(sx * w * .32 + lk - w * .1, -h * .02); X.stroke(); }
+  } else {
+    X.fillStyle = INK; for (const sx of [-1, 1]) { X.beginPath(); X.ellipse(sx * w * .32 + lk, -h * .12, w * .11, h * .16, 0, 0, Math.PI * 2); X.fill(); }
+    X.fillStyle = '#fff'; for (const sx of [-1, 1]) { X.beginPath(); X.arc(sx * w * .32 + lk - w * .03, -h * .2, w * .045, 0, Math.PI * 2); X.fill(); }
+  }
+  X.fillStyle = 'rgba(255,70,130,.45)'; for (const sx of [-1, 1]) { X.beginPath(); X.arc(sx * w * .62, h * .12, w * .13, 0, Math.PI * 2); X.fill(); }
+  X.strokeStyle = INK; X.lineWidth = lw * .7; X.lineCap = 'round'; X.beginPath();
+  if (o.dizzy) X.arc(lk, h * .32, w * .1, 0, Math.PI * 2); else X.arc(lk, h * .2, w * .16, .15 * Math.PI, .85 * Math.PI);
+  X.stroke();
+  X.restore();
+  if (o.dizzy) for (let i = 0; i < 3; i++) { const a = T * 5 + i * 2.09; star5(px + Math.cos(a) * s * .26, py - s * .38 + Math.sin(a) * s * .07, s * .08, YEL); }
+}
+
+function drawCar(car) {
+  const L = car.len, s = cell, x = ox + car.x * s + (car.jolt ? -car.dir * car.jolt * s * .05 : 0), y = oy + car.r * s, lw = Math.max(2, s * .05);
+  X.save(); X.translate(x, y);
+  X.fillStyle = INK;
+  for (const wx of (L === 1 ? [.26, .74] : [.3, 1, 1.7])) for (const wy of [.12, .88]) { rr(wx * s - s * .13, wy * s - s * .07, s * .26, s * .14, s * .05); X.fill(); }
+  rr(s * .05, s * .17, L * s - s * .1, s * .66, s * .17); X.fillStyle = car.col; X.fill(); X.lineWidth = lw; X.strokeStyle = INK; X.stroke();
+  X.fillStyle = 'rgba(0,0,0,.14)'; rr(s * .1, s * .62, L * s - s * .2, s * .16, s * .08); X.fill();
+  const fx = car.dir > 0 ? L * s - s * .36 : s * .12;
+  rr(fx, s * .27, s * .24, s * .46, s * .07); X.fillStyle = '#bfe8ff'; X.fill(); X.lineWidth = lw * .8; X.stroke();
+  const hx = car.dir > 0 ? L * s - s * .09 : s * .09, bx = car.dir > 0 ? s * .09 : L * s - s * .09;
+  for (const hy of [.27, .73]) { circ(hx, hy * s, s * .05, YEL, INK, lw * .5); circ(bx, hy * s, s * .05, car.stopped ? '#ff2b2b' : '#7a1d1d', INK, lw * .5); }
+  if (car.stopped) { X.globalAlpha = .35 + .2 * Math.sin(T * 12); for (const hy of [.27, .73]) circ(bx, hy * s, s * .11, '#ff4040'); X.globalAlpha = 1; }
+  const cx = car.dir > 0 ? (L * s - s * .36) / 2 + s * .03 : s * .36 + (L * s - s * .36) / 2 - s * .03;
+  const ok = chain.length >= car.num;
+  circ(cx, s * .5, s * .21, ok ? GRN : '#fff', ok ? INK : MAG, lw * .9);
+  X.font = `${Math.round(s * .34)}px Bangers, Impact, sans-serif`; X.textAlign = 'center'; X.textBaseline = 'middle';
+  X.fillStyle = ok ? '#fff' : INK; X.fillText(car.num, cx, s * .53);
+  X.restore();
+}
+
+function drawBoard() {
+  const bw = COLS * cell, bh = ROWS * cell;
+  X.fillStyle = INK; rr(ox + 7, oy + 8, bw, bh, 14); X.fill();
+  X.save(); rr(ox, oy, bw, bh, 14); X.clip();
+  for (let r = 0; r < ROWS; r++) {
+    const y = oy + r * cell, ty = rows[r].t;
+    if (ty === 'R') { X.fillStyle = ROAD; X.fillRect(ox, y, bw, cell + 1); continue; }
+    for (let c = 0; c < COLS; c++) { X.fillStyle = (c + r) % 2 ? (ty === 'G' ? LAV : CHK) : CREAM; X.fillRect(ox + c * cell, y, cell + 1, cell + 1); }
+  }
+  for (let r = 0; r < ROWS; r++) {
+    const y = oy + r * cell;
+    if (rows[r].t === 'R' && rows[r + 1] && rows[r + 1].t === 'R') {
+      X.strokeStyle = YEL; X.lineWidth = Math.max(2, cell * .05); X.setLineDash([cell * .32, cell * .26]); X.lineDashOffset = 0;
+      X.beginPath(); X.moveTo(ox, y + cell); X.lineTo(ox + bw, y + cell); X.stroke(); X.setLineDash([]);
+    }
+    if (rows[r].t === 'R') {
+      X.fillStyle = '#a9b1b6';
+      if (rows[r - 1] && rows[r - 1].t !== 'R') X.fillRect(ox, y, bw, cell * .07);
+      if (rows[r + 1] && rows[r + 1].t !== 'R') X.fillRect(ox, y + cell * .93, bw, cell * .07);
+    }
+  }
+  for (const car of cars) drawCar(car);
+  for (const p of party) {
+    const [x, y] = p.fly ? rpos(p) : [p.x, p.y];
+    critter(ox + (x + .5) * cell, oy + (y + .5) * cell, p.col, { hop: p.fly ? 0 : Math.abs(Math.sin(T * 6 + p.ph)) * .5, wave: !p.fly && Math.sin(T * 2 + p.ph) > .3 });
+  }
+  const L = chain[0];
+  for (const s of strays) {
+    const [x, y, k] = rpos(s), near = !s.fly && Math.abs(s.c - L.c) + Math.abs(s.r - L.r) === 1;
+    critter(ox + (x + .5) * cell, oy + (y + .5) * cell, s.col, {
+      hop: s.fly ? 0 : (Math.sin(T * 3 + s.ph) * .5 + .5) * .12, wave: near, look: Math.sign(L.c - s.c) * .8,
+      dizzy: s.dizzy > 0, rot: s.fly && s.spin ? k * Math.PI * 2 : 0 });
+  }
+  for (let i = chain.length - 1; i > 0; i--) {
+    const [ax, ay] = rpos(chain[i - 1]), [bx, by] = rpos(chain[i]);
+    const A = [ox + (ax + .5) * cell, oy + (ay + .62) * cell], B = [ox + (bx + .5) * cell, oy + (by + .62) * cell];
+    X.lineCap = 'round'; X.strokeStyle = INK; X.lineWidth = cell * .13; X.beginPath(); X.moveTo(...A); X.lineTo(...B); X.stroke();
+    X.strokeStyle = chain[i].col; X.lineWidth = cell * .06; X.beginPath(); X.moveTo(...A); X.lineTo(...B); X.stroke();
+    circ((A[0] + B[0]) / 2, (A[1] + B[1]) / 2, cell * .085, CREAM, INK, Math.max(2, cell * .04));
+  }
+  for (let i = chain.length - 1; i >= 0; i--) {
+    const m = chain[i], [x, y, k] = rpos(m);
+    critter(ox + (x + .5) * cell, oy + (y + .5) * cell, m.col, {
+      hop: m.fly ? 0 : Math.sin(Math.min(1, m.t) * Math.PI) * .9, leader: !!m.leader, look: m.leader ? m.face * .6 : 0,
+      dizzy: m.dizzy > 0, rot: m.fly && m.spin ? k * Math.PI * 2 : 0 });
+  }
+  X.restore();
+  X.lineWidth = 4; X.strokeStyle = INK; rr(ox, oy, bw, bh, 14); X.stroke();
+  if (state !== 'menu' || inLevel) {
+    const [lx, ly] = rpos(L), bxp = ox + (lx + .9) * cell, byp = oy + (ly + .12) * cell;
+    circ(bxp, byp, cell * .19, INK, '#fff', 2);
+    X.font = `${Math.round(cell * .26)}px Bangers, Impact, sans-serif`; X.textAlign = 'center'; X.textBaseline = 'middle';
+    X.fillStyle = '#fff'; X.fillText(chain.length, bxp, byp + 1);
+  }
+}
+
+function drawFx() {
+  for (const p of pops) {
+    const k = p.t / p.life, sc = k < .15 ? k / .15 * 1.15 : 1.15 - (k - .15) * .25;
+    const x = ox + p.x * cell, y = oy + p.y * cell - k * cell * .7;
+    X.save(); X.globalAlpha = k > .7 ? (1 - k) / .3 : 1; X.translate(x, y); X.scale(sc, sc); X.rotate(Math.sin(p.x * 9) * .12);
+    if (p.burst) starburst(0, 0, cell * .62, p.col);
+    const fs = Math.round(cell * (p.burst ? .36 : .42));
+    X.font = `${fs}px Bangers, Impact, sans-serif`; X.textAlign = 'center'; X.textBaseline = 'middle';
+    X.lineWidth = Math.max(3, cell * .09); X.strokeStyle = INK; X.lineJoin = 'round'; X.strokeText(p.txt, 0, 0);
+    X.fillStyle = p.burst ? '#fff' : p.col; X.fillText(p.txt, 0, 0);
+    X.restore();
+  }
+  for (const q of Q) {
+    X.save(); X.globalAlpha = Math.min(1, q.l * 2); X.translate(ox + q.x * cell, oy + q.y * cell); X.rotate(q.r);
+    X.fillStyle = q.col; X.fillRect(-cell * .06, -cell * .03, cell * .12, cell * .06); X.restore();
+  }
+}
+
+function draw() {
+  X.setTransform(DPR, 0, 0, DPR, 0, 0);
+  X.fillStyle = ORA; X.fillRect(0, 0, W, H);
+  X.fillStyle = 'rgba(29,29,36,.08)';
+  for (let y = 0; y < H + 24; y += 24) for (let x = (y / 24 % 2) * 12; x < W + 24; x += 24) { X.beginPath(); X.arc(x, y, 3, 0, Math.PI * 2); X.fill(); }
+  X.save(); X.translate((Math.random() - .5) * shake, (Math.random() - .5) * shake);
+  drawBoard(); drawFx();
+  X.restore();
+}
+
+function resize() {
+  DPR = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  const top = 66, bot = 44;
+  cell = Math.max(20, Math.floor(Math.min((W - 22) / COLS, (H - top - bot) / ROWS, 92)));
+  ox = Math.round((W - COLS * cell) / 2); oy = Math.round(top + ((H - top - bot) - ROWS * cell) / 2);
+}
+addEventListener('resize', resize);
+
+// ---------------- UI ----------------
+function hud() {
+  $('lvl').textContent = score.toLocaleString();
+  $('homeChip').textContent = `HOME ${home}/${total}`;
+  $('bonkChip').textContent = `${t('street', { n: level })}`;
+}
+let lastHint = '';
+function hint() {
+  let h = '';
+  if (state === 'play' && level <= 2) h = home === 0 && chain.length === 1 ? t('hint1') : home === 0 ? t('hint2') : t('hint3');
+  if (h !== lastHint) { lastHint = h; const el = $('hint'); if (h) el.textContent = h; el.classList.toggle('show', !!h); }
+}
+function texts() {
+  for (const k of ['tag', 'how1', 'how2', 'how3', 'how4', 'credit']) $(k).textContent = t(k);
+  $('playBtn').textContent = inLevel ? t('resume') : (save.lvl > 1 ? t('cont', { n: save.lvl }) : t('play'));
+  $('restartBtn').textContent = t('restart'); $('restartBtn').style.display = inLevel ? 'block' : 'none';
+  $('soundBtn').textContent = save.sound ? t('soundOn') : t('soundOff');
+  $('nextBtn').textContent = t('next'); $('againBtn').textContent = t('again'); $('menuBtn2').textContent = t('menu');
+  hud(); lastHint = null; hint();
+}
+function show(id) { for (const s of ['menu', 'clear']) $(s).classList.toggle('show', s === id); $('hud').classList.toggle('show', id !== 'menu'); }
+
+function startLevel(n) {
+  level = n; makeLevel(n); home = 0; bonks = 0; score = 0; clearT = 0; pops = []; Q = []; inputQ.length = 0;
+  state = 'play'; inLevel = true; resize(); hud(); show(null); lastHint = null;
+}
+function showClear() {
+  state = 'clear'; inLevel = false; sfx.win(); confetti(COLS / 2, 0.5, 60);
+  save.best[level] = Math.max(save.best[level] || 0, score); save.lvl = Math.max(save.lvl, level + 1); persist();
+  $('clearTitle').textContent = t('clear');
+  $('clearScore').textContent = t('score', { s: score.toLocaleString() });
+  $('clearStats').textContent = t('stats', { b: save.best[level].toLocaleString(), k: bonks });
+  texts(); show('clear');
+}
+
+$('playBtn').onclick = () => { ac(); if (inLevel) { state = 'play'; show(null); } else startLevel(save.lvl); };
+$('restartBtn').onclick = () => { ac(); startLevel(level); };
+$('menuBtn').onclick = () => { if (state === 'play') { state = 'paused'; texts(); show('menu'); } };
+$('menuBtn2').onclick = () => { texts(); show('menu'); };
+$('nextBtn').onclick = () => startLevel(level + 1);
+$('againBtn').onclick = () => startLevel(level);
+$('soundBtn').onclick = () => { save.sound = !save.sound; persist(); texts(); if (save.sound) { ac(); sfx.step(); } };
+
+// ---------------- input: swipe, tap, keys ----------------
+let p0 = null;
+const queue = (dc, dr) => { if ((dc || dr) && inputQ.length < 2) inputQ.push([dc, dr]); };
+addEventListener('pointerdown', e => { if (state !== 'play' || e.target.closest('button')) return; p0 = { x: e.clientX, y: e.clientY }; ac(); });
+addEventListener('pointerup', e => {
+  if (!p0 || state !== 'play') return;
+  const dx = e.clientX - p0.x, dy = e.clientY - p0.y; p0 = null;
+  if (Math.hypot(dx, dy) > 18) { Math.abs(dx) > Math.abs(dy) ? queue(Math.sign(dx), 0) : queue(0, Math.sign(dy)); return; }
+  const [lx, ly] = rpos(chain[0]), tx = e.clientX - (ox + (lx + .5) * cell), ty = e.clientY - (oy + (ly + .5) * cell);
+  if (Math.abs(tx) < cell * .35 && Math.abs(ty) < cell * .35) return;
+  Math.abs(tx) > Math.abs(ty) ? queue(Math.sign(tx), 0) : queue(0, Math.sign(ty));
+});
+addEventListener('pointercancel', () => p0 = null);
+addEventListener('keydown', e => {
+  if (state !== 'play') return;
+  const k = { ArrowUp: [0, -1], w: [0, -1], ArrowDown: [0, 1], s: [0, 1], ArrowLeft: [-1, 0], a: [-1, 0], ArrowRight: [1, 0], d: [1, 0] }[e.key];
+  if (k) { e.preventDefault(); ac(); if (!e.repeat) queue(...k); }
+});
+
+// ---------------- go ----------------
+makeLevel(save.lvl); level = save.lvl; resize(); texts();
+let last = performance.now();
+function loop(now) { const dt = Math.min(.05, (now - last) / 1000); last = now; update(dt); draw(); requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+if (document.fonts) document.fonts.load('40px Bangers').catch(() => {});
+})();
+</script>
+</body>
+</html>

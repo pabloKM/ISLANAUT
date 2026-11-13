@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dear Tomorrow — Style Proof of Concept</title>
+<style>
+  :root { --ink:#1b1712; --paper:#f6efe1; --muted:#6d6457; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.4 "Trebuchet MS",system-ui,sans-serif;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    background-image:radial-gradient(#1b171210 1.2px, transparent 1.2px); background-size:16px 16px; }
+  header { max-width:1200px; margin:0 auto; padding:22px 16px 6px; }
+  h1 { margin:0; font-size:clamp(26px,5vw,40px); letter-spacing:.5px; }
+  header p { margin:6px 0 0; color:var(--muted); font-weight:600; max-width:720px; }
+  .bar { position:sticky; top:0; z-index:5; background:rgba(246,239,225,.94); backdrop-filter:blur(6px);
+    border-bottom:2px solid var(--ink); }
+  .bar .in { max-width:1200px; margin:0 auto; padding:10px 16px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; font-weight:800; }
+  .bar input[type=range] { flex:1; min-width:160px; accent-color:#e8502e; }
+  .bar button { font:inherit; font-weight:800; border:2px solid var(--ink); background:#fff; border-radius:999px; padding:4px 12px; cursor:pointer; }
+  .bar button[aria-pressed=true] { background:var(--ink); color:#fff; }
+  #todLabel { min-width:56px; }
+  main { max-width:1200px; margin:0 auto; padding:16px; display:grid; gap:20px; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); }
+  .panel { border:3px solid var(--ink); border-radius:12px; background:#fff; box-shadow:6px 6px 0 var(--ink); overflow:hidden; display:flex; flex-direction:column; }
+  .view { position:relative; aspect-ratio:4/5; background:#bfe3ea; }
+  .view canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .tag { position:absolute; left:10px; top:10px; background:var(--ink); color:#fff; font-weight:800; font-size:13px; padding:3px 9px; border-radius:999px; }
+  .pick { position:absolute; right:10px; top:10px; background:#e8502e; color:#fff; font-weight:800; font-size:13px; padding:3px 9px; border-radius:999px; border:2px solid var(--ink); }
+  .cap { padding:12px 14px 14px; border-top:3px solid var(--ink); }
+  .cap h2 { margin:0 0 4px; font-size:20px; }
+  .cap p { margin:0 0 8px; }
+  .cap ul { margin:0; padding-left:18px; }
+  .cap li { margin:2px 0; }
+  .pro { color:#2f7d3d; } .con { color:#a2391f; }
+  footer { max-width:1200px; margin:0 auto; padding:4px 16px 30px; color:var(--muted); font-weight:600; font-size:14px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Dear Tomorrow: three ways to draw the same morning</h1>
+  <p>A proof of concept. The same test island and the same Waker (your drawing) shown three ways. Drag the slider to see how each style handles the light from dawn to night.</p>
+</header>
+<div class="bar"><div class="in">
+  <span>Time of day</span>
+  <input id="tod" type="range" min="0" max="1" step="0.001" value="0.3" aria-label="Time of day">
+  <span id="todLabel">Morning</span>
+  <button id="auto" aria-pressed="true">Auto</button>
+</div></div>
+<main>
+  <section class="panel">
+    <div class="view"><canvas id="c2d"></canvas><span class="tag">1 · 2D ink</span><span class="pick">My pick</span></div>
+    <div class="cap">
+      <h2>2D hand-drawn</h2>
+      <p>Your drawing used as-is, on an island drawn in wobbly ink that gently "boils" like hand animation.</p>
+      <ul>
+        <li class="pro">Keeps your line exactly as drawn</li>
+        <li class="pro">Lightest on phones, quickest to build</li>
+        <li class="con">Fixed camera; needs front, side and back drawings</li>
+      </ul>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="view"><canvas id="c25"></canvas><span class="tag">2 · 2.5D paper cutout</span></div>
+    <div class="cap">
+      <h2>2.5D paper cutout</h2>
+      <p>A 3D island with your flat drawing standing in it like a paper figure, as in Paper Mario.</p>
+      <ul>
+        <li class="pro">Real depth and a camera that can drift</li>
+        <li class="pro">Still your drawing, same art needs as 2D</li>
+        <li class="con">Line on the world is cleaner and less handmade; more build work</li>
+      </ul>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="view"><canvas id="c3d"></canvas><span class="tag">3 · Full 3D</span></div>
+    <div class="cap">
+      <h2>Full 3D</h2>
+      <p>The Waker rebuilt from simple 3D shapes with toon shading, turning freely as they walk.</p>
+      <ul>
+        <li class="pro">Every angle for free, smooth turning</li>
+        <li class="pro">Fewer drawings needed from you</li>
+        <li class="con">Your hand-drawn line is lost; looks more like a toy; heaviest on phones</li>
+      </ul>
+    </div>
+  </section>
+</main>
+<footer>Test island only: nothing here is from the real game. Proof of concept by Claude (AI) · Waker design by PabloKM.</footer>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
+
+// ------------------------------------------------------------------
+// Shared: time of day, the Waker's walk, glyph doodles
+// ------------------------------------------------------------------
+const tod = document.getElementById('tod'), todLabel = document.getElementById('todLabel'), autoBtn = document.getElementById('auto');
+let auto = true;
+autoBtn.onclick = () => { auto = !auto; autoBtn.setAttribute('aria-pressed', auto); };
+tod.addEventListener('input', () => { auto = false; autoBtn.setAttribute('aria-pressed', false); });
+
+const KEYS = [ // t, background/sky tint, light tint, darkness
+  [0.00, '#f4b6b0', '#ffcfc4', 0.10],   // dawn
+  [0.30, '#fffaf0', '#ffffff', 0.00],   // noon
+  [0.62, '#ffbf8f', '#ffc49a', 0.05],   // dusk
+  [0.85, '#3b3d78', '#8e95e6', 0.45],   // night
+  [1.00, '#2a2b5a', '#7d84d0', 0.55]
+];
+const cA = new THREE.Color(), cB = new THREE.Color();
+function dayAt(t) {
+  let i = 0; while (i < KEYS.length - 2 && t > KEYS[i + 1][0]) i++;
+  const [t0, s0, l0, d0] = KEYS[i], [t1, s1, l1, d1] = KEYS[i + 1], k = Math.min(1, Math.max(0, (t - t0) / (t1 - t0)));
+  return { sky: cA.set(s0).lerp(cB.set(s1), k).clone(), light: cA.set(l0).lerp(cB.set(l1), k).clone(), dark: d0 + (d1 - d0) * k };
+}
+const labelFor = t => t < .12 ? 'Dawn' : t < .28 ? 'Morning' : t < .5 ? 'Noon' : t < .7 ? 'Dusk' : 'Night';
+
+// island coordinates: x, z in about [-1, 1]
+const PLACES = { palmA: [-0.62, -0.42], palmB: [-0.08, -0.58], board: [0.46, -0.38], palmC: [0.7, 0.5], rock: [-0.52, 0.42] };
+const PATH = [ // x, z, pause seconds
+  [-0.34, -0.3, 1.6], [0.40, -0.14, 2.2], [0.12, 0.56, 1.6], [-0.40, 0.12, 0.6]
+];
+const SPEED = 0.32; // units per second
+function walkerAt(time) {
+  const legs = PATH.map((p, i) => { const q = PATH[(i + 1) % PATH.length]; return { p, q, len: Math.hypot(q[0] - p[0], q[1] - p[1]) }; });
+  const total = legs.reduce((s, l) => s + l.p[2] + l.len / SPEED, 0);
+  let t = time % total;
+  for (const l of legs) {
+    if (t < l.p[2]) return { x: l.p[0], z: l.p[1], vx: 0, vz: 0, moving: false };
+    t -= l.p[2];
+    const d = l.len / SPEED;
+    if (t < d) { const k = t / d; const vx = (l.q[0] - l.p[0]) / l.len, vz = (l.q[1] - l.p[1]) / l.len;
+      return { x: l.p[0] + (l.q[0] - l.p[0]) * k, z: l.p[1] + (l.q[1] - l.p[1]) * k, vx, vz, moving: true }; }
+    t -= d;
+  }
+  return { x: PATH[0][0], z: PATH[0][1], vx: 0, vz: 0, moving: false };
+}
+
+// three tiny note doodles: arrow, wave, sun
+function drawGlyph(g, kind, x, y, s, lw) {
+  g.save(); g.translate(x, y); g.strokeStyle = '#1b1712'; g.lineWidth = lw; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath();
+  if (kind === 0) { g.moveTo(-s * .35, s * .25); g.lineTo(s * .3, -s * .3); g.moveTo(s * .3, -s * .3); g.lineTo(0, -s * .32); g.moveTo(s * .3, -s * .3); g.lineTo(s * .3, 0); }
+  if (kind === 1) { g.moveTo(-s * .4, 0); g.bezierCurveTo(-s * .25, -s * .3, -s * .1, s * .3, 0, 0); g.bezierCurveTo(s * .1, -s * .3, s * .25, s * .3, s * .4, 0); }
+  if (kind === 2) { g.arc(0, 0, s * .16, 0, Math.PI * 2); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; g.moveTo(Math.cos(a) * s * .26, Math.sin(a) * s * .26); g.lineTo(Math.cos(a) * s * .38, Math.sin(a) * s * .38); } }
+  g.stroke(); g.restore();
+}
+
+const imgFront = new Image(), imgSide = new Image();
+imgFront.src = 'waker-front.png'; imgSide.src = 'waker-side.png';
+
+// ------------------------------------------------------------------
+// 1 · 2D ink
+// ------------------------------------------------------------------
+const c2 = document.getElementById('c2d'), g = c2.getContext('2d');
+let W2 = 0, H2 = 0;
+function size2d() { const r = c2.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1); W2 = r.width; H2 = r.height; c2.width = W2 * d; c2.height = H2 * d; g.setTransform(d, 0, 0, d, 0, 0); }
+// small seeded noise for wobbly, boiling ink
+const hash = n => { const s = Math.sin(n * 127.1) * 43758.5453; return s - Math.floor(s); };
+let boil = 0;
+const jit = (i, a) => (hash(i * 13.37 + boil * 7.1) - .5) * a;
+function inkPath(pts, close, fill, lw, amp = 1.2) {
+  g.beginPath();
+  pts.forEach(([x, y], i) => { const px = x + jit(i + x, amp), py = y + jit(i * 3 + y, amp); i ? g.lineTo(px, py) : g.moveTo(px, py); });
+  if (close) g.closePath();
+  if (fill) { g.fillStyle = fill; g.fill(); }
+  if (lw) { g.strokeStyle = '#1b1712'; g.lineWidth = lw; g.lineJoin = 'round'; g.lineCap = 'round'; g.stroke(); }
+}
+function draw2d(time, t) {
+  if (!W2) size2d();
+  boil = Math.floor(time * 6);
+  const cx = W2 / 2, cy = H2 * .52, rx = W2 * .42, ry = H2 * .27;
+  const P = (x, z) => [cx + x * rx * .82, cy + z * ry * .82];
+  g.fillStyle = '#9fd3dc'; g.fillRect(0, 0, W2, H2);
+  // drifting wave marks
+  g.strokeStyle = 'rgba(27,23,18,.35)'; g.lineWidth = 1.6; g.lineCap = 'round';
+  for (let i = 0; i < 26; i++) {
+    const x = (hash(i) * W2 + time * 6 * (hash(i + 9) + .3)) % (W2 + 30) - 15, y = hash(i + 50) * H2;
+    if (Math.abs((x - cx) / rx) ** 2 + Math.abs((y - cy) / ry) ** 2 < 1.5) continue;
+    g.beginPath(); g.moveTo(x - 9, y); g.quadraticCurveTo(x - 4, y - 5, x, y); g.quadraticCurveTo(x + 4, y - 5, x + 9, y); g.stroke();
+  }
+  // island
+  const isl = [], foam = [];
+  for (let i = 0; i < 48; i++) { const a = i / 48 * Math.PI * 2, r = 1 + .07 * Math.sin(a * 3 + 1) + .05 * Math.sin(a * 5);
+    isl.push([cx + Math.cos(a) * rx * r, cy + Math.sin(a) * ry * r]); foam.push([cx + Math.cos(a) * rx * r * 1.07, cy + Math.sin(a) * ry * r * 1.1]); }
+  inkPath(foam, true, 'rgba(255,255,255,.7)', 0);
+  inkPath(isl, true, '#f2d9a2', 2.6);
+  // sand stipple
+  g.fillStyle = 'rgba(27,23,18,.28)';
+  for (let i = 0; i < 70; i++) { const a = hash(i + 200) * Math.PI * 2, r = Math.sqrt(hash(i + 300)) * .85;
+    g.beginPath(); g.arc(cx + Math.cos(a) * rx * r, cy + Math.sin(a) * ry * r, 1, 0, 7); g.fill(); }
+  // items sorted by depth
+  const items = [];
+  const palm = (x, z, h, lean) => items.push({ z, draw: () => {
+    const [px, py] = P(x, z);
+    g.fillStyle = 'rgba(27,23,18,.15)'; g.beginPath(); g.ellipse(px, py + 2, 16, 5, 0, 0, 7); g.fill();
+    const top = [px + lean, py - h];
+    inkPath([[px - 4, py], [px + lean * .5 - 3, py - h * .5], [top[0] - 2, top[1]], [top[0] + 2, top[1]], [px + lean * .5 + 3, py - h * .5], [px + 4, py]], true, '#b7804f', 2.2, .8);
+    for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2 + .3, L = h * .45;
+      const ex = top[0] + Math.cos(a) * L, ey = top[1] + Math.sin(a) * L * .5 + 6;
+      inkPath([[top[0], top[1]], [(top[0] + ex) / 2 + Math.sin(a) * 6, (top[1] + ey) / 2 - 8], [ex, ey], [(top[0] + ex) / 2 - Math.sin(a) * 4, (top[1] + ey) / 2 + 2]], true, '#5dbb63', 2, .8); }
+  } });
+  palm(...PLACES.palmA, H2 * .17, -6); palm(...PLACES.palmB, H2 * .19, 5); palm(...PLACES.palmC, H2 * .16, 8);
+  // hammock between palm A and B
+  items.push({ z: -0.45, draw: () => {
+    const [ax, ay] = P(...PLACES.palmA), [bx, by] = P(...PLACES.palmB), hy = H2 * .06;
+    const pts = []; for (let i = 0; i <= 12; i++) { const k = i / 12; pts.push([ax - 3 + (bx - ax + 6) * k, ay - hy + (by - ay) * k + Math.sin(k * Math.PI) * hy * .55]); }
+    const back = pts.map(([x, y]) => [x, y + 6]).reverse();
+    inkPath(pts.concat(back), true, '#f07a4a', 2, .7);
+  } });
+  // the Board
+  items.push({ z: PLACES.board[1], draw: () => {
+    const [px, py] = P(...PLACES.board), bw = W2 * .17, bh = bw * .68;
+    inkPath([[px - 3, py], [px - 3, py - bh * 1.3], [px + 3, py - bh * 1.3], [px + 3, py]], true, '#8b6040', 2);
+    const top = py - bh * 1.3 - bh * .5;
+    inkPath([[px - bw / 2, top], [px + bw / 2, top], [px + bw / 2, top + bh], [px - bw / 2, top + bh]], true, '#cf9a5f', 2.4, 1);
+    for (let k = 0; k < 3; k++) { const nx = px - bw * .32 + k * bw * .32, ny = top + bh * .5 + (k % 2 ? 3 : -2), s = bw * .26;
+      inkPath([[nx - s / 2, ny - s / 2], [nx + s / 2, ny - s / 2], [nx + s / 2, ny + s / 2], [nx - s / 2, ny + s / 2]], true, '#fffaf0', 1.5, .6);
+      drawGlyph(g, k, nx, ny, s, 1.4); }
+  } });
+  // rock
+  items.push({ z: PLACES.rock[1], draw: () => { const [px, py] = P(...PLACES.rock);
+    inkPath([[px - 18, py], [px - 12, py - 13], [px + 4, py - 16], [px + 17, py - 4], [px + 14, py + 2]], true, '#b7aec9', 2.2); } });
+  // the Waker
+  const w = walkerAt(time);
+  items.push({ z: w.z, draw: () => {
+    const [px, py] = P(w.x, w.z);
+    const side = w.moving && (Math.abs(w.vx) > Math.abs(w.vz) * .6 || w.vz < 0);
+    const img = side ? imgSide : imgFront; if (!img.complete) return;
+    const h = H2 * .13, ww = h * img.width / img.height;
+    const step = w.moving ? Math.sin(time * 11) : 0;
+    g.fillStyle = 'rgba(27,23,18,.2)'; g.beginPath(); g.ellipse(px, py + 1, ww * .45, 4, 0, 0, 7); g.fill();
+    g.save(); g.translate(px, py - Math.abs(step) * 3); g.rotate(step * .06);
+    if (side && w.vx < 0) g.scale(-1, 1);
+    g.drawImage(img, -ww / 2, -h, ww, h); g.restore();
+  } });
+  items.sort((a, b) => a.z - b.z).forEach(o => o.draw());
+  // light of the day
+  const d = dayAt(t);
+  g.save(); g.globalCompositeOperation = 'multiply'; g.fillStyle = '#' + d.sky.getHexString(); g.fillRect(0, 0, W2, H2); g.restore();
+  if (d.dark > 0) { const vg = g.createRadialGradient(cx, cy, Math.min(W2, H2) * .2, cx, cy, Math.max(W2, H2) * .75);
+    vg.addColorStop(0, `rgba(10,10,40,${d.dark * .3})`); vg.addColorStop(1, `rgba(10,10,40,${d.dark})`); g.fillStyle = vg; g.fillRect(0, 0, W2, H2); }
+}
+
+// ------------------------------------------------------------------
+// 2 & 3 · three.js scenes (shared island)
+// ------------------------------------------------------------------
+const ramp = new THREE.DataTexture(new Uint8Array([110, 190, 255]), 3, 1, THREE.RedFormat);
+ramp.minFilter = ramp.magFilter = THREE.NearestFilter; ramp.needsUpdate = true;
+const toon = (c, outline = true) => { const m = new THREE.MeshToonMaterial({ color: c, gradientMap: ramp }); if (!outline) m.userData.outlineParameters = { visible: false }; return m; };
+const S = 3.6; // island units -> world units
+
+function noteTexture(kind) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128; const x = cv.getContext('2d');
+  x.fillStyle = '#fffaf0'; x.fillRect(0, 0, 128, 128); x.strokeStyle = '#1b1712'; x.lineWidth = 6; x.strokeRect(3, 3, 122, 122);
+  drawGlyph(x, kind, 64, 64, 120, 7); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+
+function makeWorld(canvas, mode) {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1));
+  const effect = new OutlineEffect(renderer, { defaultThickness: 0.006, defaultColor: [0.1, 0.09, 0.07] });
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(30, 0.8, 0.1, 100);
+  const amb = new THREE.AmbientLight(0xffffff, 1.2), sun = new THREE.DirectionalLight(0xffffff, 2.2);
+  sun.position.set(4, 8, 5); scene.add(amb, sun);
+
+  // sea + foam + island
+  const sea = new THREE.Mesh(new THREE.PlaneGeometry(80, 80).rotateX(-Math.PI / 2), toon(0x8fcfdb, false)); sea.position.y = -0.18; scene.add(sea);
+  const shape = new THREE.Shape(), foamShape = new THREE.Shape();
+  for (let i = 0; i <= 64; i++) { const a = i / 64 * Math.PI * 2, r = 1 + .07 * Math.sin(a * 3 + 1) + .05 * Math.sin(a * 5);
+    const x = Math.cos(a) * S * 1.12 * r, y = -Math.sin(a) * S * 1.12 * r; i ? shape.lineTo(x, y) : shape.moveTo(x, y);
+    const fx = x * 1.08, fy = y * 1.08; i ? foamShape.lineTo(fx, fy) : foamShape.moveTo(fx, fy); }
+  const island = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: .35, bevelEnabled: true, bevelSize: .12, bevelThickness: .1, bevelSegments: 2 }).rotateX(-Math.PI / 2), toon(0xf2d9a2));
+  island.position.y = -0.36; scene.add(island);
+  const foam = new THREE.Mesh(new THREE.ShapeGeometry(foamShape).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .55 }));
+  foam.material.userData.outlineParameters = { visible: false }; foam.position.y = -0.17; scene.add(foam);
+
+  const W = (x, z) => new THREE.Vector3(x * S, 0, z * S);
+  // palms
+  function palm(p, h, lean) {
+    const grp = new THREE.Group(); grp.position.copy(W(...p)); scene.add(grp);
+    const seg = 5; let prev = new THREE.Vector3();
+    for (let i = 1; i <= seg; i++) { const k = i / seg, pt = new THREE.Vector3(lean * k * k, h * k, 0);
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(.09 - k * .03, .11 - k * .03, prev.distanceTo(pt), 8), toon(0xb7804f));
+      m.position.copy(prev).add(pt).multiplyScalar(.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), pt.clone().sub(prev).normalize()); grp.add(m); prev = pt; }
+    for (let i = 0; i < 6; i++) { const leaf = new THREE.Mesh(new THREE.ConeGeometry(.22, 1.3, 4), toon(0x5dbb63));
+      leaf.scale.set(1, 1, .25); const a = i / 6 * Math.PI * 2; leaf.position.set(prev.x + Math.cos(a) * .55, prev.y - .12, Math.sin(a) * .55);
+      leaf.rotation.set(Math.sin(a) * 1.9, 0, -Math.cos(a) * 1.9); grp.add(leaf); }
+    return prev.clone().add(grp.position);
+  }
+  const ta = palm(PLACES.palmA, 2.2, -.25), tb = palm(PLACES.palmB, 2.4, .2); palm(PLACES.palmC, 2.0, .3);
+  // hammock
+  const a0 = W(...PLACES.palmA).setY(1.05), b0 = W(...PLACES.palmB).setY(1.05), mid = a0.clone().lerp(b0, .5).setY(.55);
+  const ham = new THREE.Mesh(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(a0, mid, b0), 20, .12, 6), toon(0xf07a4a)); ham.scale.z = 1; scene.add(ham);
+  // board
+  const bp = W(...PLACES.board);
+  const post = new THREE.Mesh(new THREE.BoxGeometry(.12, 1.3, .12), toon(0x8b6040)); post.position.copy(bp).setY(.65); scene.add(post);
+  const board = new THREE.Mesh(new THREE.BoxGeometry(1.25, .85, .08), toon(0xcf9a5f)); board.position.copy(bp).setY(1.55); scene.add(board);
+  const flats = [];
+  for (let k = 0; k < 3; k++) { const n = new THREE.Mesh(new THREE.PlaneGeometry(.32, .32), new THREE.MeshBasicMaterial({ map: noteTexture(k) })); flats.push(n.material);
+    n.material.userData.outlineParameters = { visible: false }; n.position.copy(bp).add(new THREE.Vector3(-.38 + k * .38, 1.55 + (k % 2 ? .05 : -.03), .05)); scene.add(n); }
+  // rock
+  const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(.45), toon(0xb7aec9)); rock.scale.set(1.2, .7, 1); rock.position.copy(W(...PLACES.rock)).setY(.15); scene.add(rock);
+
+  // blob shadow
+  const shadow = new THREE.Mesh(new THREE.CircleGeometry(.32, 20).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0, transparent: true, opacity: .2, depthWrite: false }));
+  shadow.material.userData.outlineParameters = { visible: false }; scene.add(shadow);
+
+  // the Waker
+  let waker, cut = null;
+  if (mode === 'paper') {
+    const load = img => { const t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.needsUpdate = true; return t; };
+    const mat = new THREE.MeshBasicMaterial({ transparent: true, alphaTest: .5, side: THREE.DoubleSide }); flats.push(mat);
+    mat.userData.outlineParameters = { visible: false };
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).translate(0, .5, 0), mat);
+    waker = new THREE.Group(); waker.add(plane); scene.add(waker);
+    cut = { plane, mat, tex: {} };
+    const ready = () => { if (imgFront.complete && imgSide.complete) { cut.tex.front = load(imgFront); cut.tex.side = load(imgSide); } };
+    imgFront.addEventListener('load', ready); imgSide.addEventListener('load', ready); ready();
+  } else {
+    waker = buildWaker3D(); scene.add(waker);
+  }
+
+  function resize() { const r = canvas.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); camera.aspect = r.width / r.height; camera.updateProjectionMatrix(); }
+  resize();
+  let heading = 0;
+  return { resize, render(time, t) {
+    const d = dayAt(t);
+    scene.background = new THREE.Color(0x8fcfdb).multiply(d.sky);
+    amb.color.copy(d.light); sun.color.copy(d.light); amb.intensity = 1.2 - d.dark; sun.intensity = 2.2 - d.dark * 2.5;
+    sea.material.color.set(0x8fcfdb).multiply(d.sky);
+    for (const fm of flats) fm.color.copy(d.light).multiplyScalar(1 - d.dark * 1.1);
+    const sway = Math.sin(time * .25) * .9;
+    camera.position.set(sway, 15.5, 17.5); camera.lookAt(0, .5, .3);
+    const w = walkerAt(time), pos = W(w.x, w.z), step = w.moving ? Math.sin(time * 11) : 0;
+    waker.position.copy(pos).setY(Math.abs(step) * .06); shadow.position.copy(pos).setY(.01);
+    if (mode === 'paper') {
+      if (cut.tex.front) {
+        const side = w.moving && (Math.abs(w.vx) > Math.abs(w.vz) * .6 || w.vz < 0), img = side ? imgSide : imgFront;
+        const tex = side ? cut.tex.side : cut.tex.front; if (cut.mat.map !== tex) { cut.mat.map = tex; cut.mat.needsUpdate = true; }
+        const h = 1.55; cut.plane.scale.set(h * img.width / img.height * (side && w.vx < 0 ? -1 : 1), h, 1);
+      }
+      waker.rotation.set(0, Math.atan2(camera.position.x - pos.x, camera.position.z - pos.z), step * .06);
+    } else {
+      if (w.moving) { const target = Math.atan2(w.vx, w.vz); let dlt = target - heading; dlt = Math.atan2(Math.sin(dlt), Math.cos(dlt)); heading += dlt * .12; }
+      else { let dlt = Math.atan2(camera.position.x - pos.x, camera.position.z - pos.z) - heading; dlt = Math.atan2(Math.sin(dlt), Math.cos(dlt)); heading += dlt * .04; }
+      waker.rotation.set(0, heading, 0); waker.children[0].rotation.z = step * .07;
+    }
+    effect.render(scene, camera);
+  } };
+}
+
+function buildWaker3D() {
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body); root.scale.setScalar(1.4);
+  const m = (geo, col, x, y, z, outline = true) => { const o = new THREE.Mesh(geo, toon(col, outline)); o.position.set(x, y, z); body.add(o); return o; };
+  const RED = 0xef4f5a, LIME = 0xc6ef66, ORANGE = 0xffb047, MAROON = 0xb04a62, BLACK = 0x111111, WHITE = 0xffffff;
+  for (const s of [-1, 1]) { m(new THREE.CylinderGeometry(.055, .06, .2, 10), MAROON, s * .1, .12, 0);
+    const ff = m(new THREE.BoxGeometry(.15, .035, .28), RED, s * .1, .02, .04); ff.geometry = new THREE.BoxGeometry(.15, .035, .28); }
+  m(new THREE.CylinderGeometry(.2, .37, .52, 20), LIME, 0, .45, 0);
+  const collar = m(new THREE.TorusGeometry(.2, .1, 10, 20), LIME, 0, .72, 0); collar.rotation.x = Math.PI / 2;
+  const clip = m(new THREE.BoxGeometry(.06, .1, .03), 0xc8ccc0, .03, .62, .24);
+  m(new THREE.SphereGeometry(.17, 16, 12), BLACK, 0, .8, .1);
+  const hood = m(new THREE.SphereGeometry(.27, 22, 16), RED, 0, .93, -.02); hood.scale.set(1, .95, 1);
+  const bill = m(new THREE.SphereGeometry(.2, 20, 12), ORANGE, 0, .88, .26); bill.scale.set(1.05, .34, 1.45);
+  m(new THREE.SphereGeometry(.045, 10, 8), WHITE, .07, .79, .25, false);
+  m(new THREE.SphereGeometry(.022, 8, 6), BLACK, .075, .79, .29, false);
+  for (const s of [-1, 1]) { m(new THREE.SphereGeometry(.07, 12, 10), WHITE, s * .2, 1.0, .1, false).scale.set(.5, 1, 1);
+    m(new THREE.SphereGeometry(.03, 8, 6), BLACK, s * .235, 1.0, .12, false); }
+  const loop = m(new THREE.TorusGeometry(.07, .025, 8, 16, Math.PI), WHITE, 0, 1.17, -.04);
+  m(new THREE.SphereGeometry(.07, 12, 10), MAROON, .16, .52, .28); m(new THREE.SphereGeometry(.07, 12, 10), MAROON, -.1, .4, .3);
+  const chalk = m(new THREE.CylinderGeometry(.06, .06, .62, 14), WHITE, .04, .47, .32); chalk.rotation.z = -.75;
+  return root;
+}
+
+const w25 = makeWorld(document.getElementById('c25'), 'paper');
+const w3 = makeWorld(document.getElementById('c3d'), 'model');
+addEventListener('resize', () => { size2d(); w25.resize(); w3.resize(); });
+
+const t0 = performance.now();
+function frame(now) {
+  const time = (now - t0) / 1000;
+  if (auto) tod.value = ((time / 40 + .3) % 1).toFixed(3);
+  const t = +tod.value; todLabel.textContent = labelFor(t);
+  draw2d(time, t); w25.render(time, t); w3.render(time, t);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
